@@ -133,6 +133,86 @@ _REDACTORS: tuple[tuple[re.Pattern[str], str], ...] = (
 
 _LOCK = threading.Lock()
 
+# In-memory cache of the last line's SHA-256 to avoid re-reading the
+# log on every append. Initialised lazily inside the lock.
+_LAST_SHA256: str | None = None
+_ZERO_SHA256 = "0" * 64
+
+
+def _compute_last_sha256() -> str:
+    """Return the SHA-256 of the last non-empty line in the audit log.
+
+    Falls back to ``_ZERO_SHA256`` for a brand-new (or empty) log file
+    so the chain has a well-defined origin.
+    """
+    if not AUDIT_PATH.exists():
+        return _ZERO_SHA256
+    try:
+        with AUDIT_PATH.open("rb") as fh:
+            last = b""
+            for line in fh:
+                stripped = line.rstrip(b"\r\n")
+                if stripped:
+                    last = stripped
+    except OSError:
+        return _ZERO_SHA256
+    if not last:
+        return _ZERO_SHA256
+    return hashlib.sha256(last).hexdigest()
+
+
+def reset_chain_cache() -> None:
+    """Force the hash chain to be re-read from disk on next append.
+
+    Useful in tests that rotate the log file out of band.
+    """
+    global _LAST_SHA256
+    with _LOCK:
+        _LAST_SHA256 = None
+
+
+def verify_chain(path: Path | None = None) -> tuple[bool, int, str]:
+    """Walk the audit log and verify the ``prev_sha256`` chain.
+
+    Returns ``(ok, line_number, message)``. ``line_number`` is 1-based
+    and points at the first invalid line, or ``0`` when the chain is
+    intact (or the file is empty/missing). Lines that do not parse as
+    JSON are skipped — they were not produced by this module and are
+    not part of the chain.
+    """
+    target = path or AUDIT_PATH
+    if not target.exists():
+        return True, 0, "no audit log"
+    expected_prev = _ZERO_SHA256
+    line_no = 0
+    with target.open("rb") as fh:
+        for raw in fh:
+            line_no += 1
+            stripped = raw.rstrip(b"\r\n")
+            if not stripped:
+                continue
+            try:
+                entry = json.loads(stripped.decode("utf-8", "replace"))
+            except json.JSONDecodeError:
+                # Pre-chain or externally-injected lines are not
+                # validated; advance the expected hash to the actual
+                # line so the chain self-heals at this boundary.
+                expected_prev = hashlib.sha256(stripped).hexdigest()
+                continue
+            actual_prev = entry.get("prev_sha256")
+            if actual_prev is None:
+                # Legacy entry without a chain link; accept it but
+                # advance the chain to keep going.
+                expected_prev = hashlib.sha256(stripped).hexdigest()
+                continue
+            if actual_prev != expected_prev:
+                return False, line_no, (
+                    f"hash chain broken at line {line_no}: "
+                    f"expected prev_sha256={expected_prev} got {actual_prev}"
+                )
+            expected_prev = hashlib.sha256(stripped).hexdigest()
+    return True, 0, "ok"
+
 
 def redact(value: Any) -> Any:
     """Redact token-shaped substrings from ``value`` recursively."""
@@ -167,26 +247,30 @@ def _ensure_log() -> None:
 
 def log_event(event_type: str, **fields: Any) -> str:
     """Append one audit entry. Returns the entry's ``id``."""
+    global _LAST_SHA256
     entry_id = uuid.uuid4().hex
     now = time.time()
-    entry: dict[str, Any] = {
-        "id": entry_id,
-        "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(now)),
-        # FIX: always emit a UTC timestamp alongside the local-time
-        # ``ts`` so testers correlating audit lines with journalctl
-        # (UTC) do not have to do timezone math in their heads.
-        "ts_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
-        # FIX: ``pid`` is cheap and lets a tester join audit lines
-        # with ``journalctl _PID=...`` output for the chat service.
-        "pid": os.getpid(),
-        "type": event_type,
-    }
-    entry.update(redact(fields))
-    line = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
     with _LOCK:
         _ensure_log()
+        if _LAST_SHA256 is None:
+            _LAST_SHA256 = _compute_last_sha256()
+        entry: dict[str, Any] = {
+            "id": entry_id,
+            "ts": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(now)),
+            "ts_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+            "pid": os.getpid(),
+            "type": event_type,
+            # ``prev_sha256`` lets ``Verify-Audit.ps1`` and
+            # ``verify_chain()`` detect tampering. A fresh log starts
+            # the chain at the all-zero hash so the origin is
+            # well-defined.
+            "prev_sha256": _LAST_SHA256,
+        }
+        entry.update(redact(fields))
+        line = json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
         with AUDIT_PATH.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
+        _LAST_SHA256 = hashlib.sha256(line.encode("utf-8")).hexdigest()
     return entry_id
 
 

@@ -18,22 +18,6 @@ $ErrorActionPreference = 'Stop'
 # Configuration (overridable via environment, mirroring the bash legacy)
 # ---------------------------------------------------------------------
 
-if (-not $script:AzConfig) {
-    function _Coalesce { param([object[]]$Values) foreach ($v in $Values) { if ($null -ne $v -and "$v" -ne '') { return $v } } return $null }
-    $script:AzConfig = [ordered]@{
-        AgentUser     = (_Coalesce @($env:ZOMBIE_USER, 'zombie'))
-        InstallRoot   = (_Coalesce @($env:AI_ZOMBIE_ROOT, (Join-Path $env:ProgramData 'AiZombie')))
-        ChatPort      = [int](_Coalesce @($env:ZOMBIE_CHAT_PORT, 7878))
-        ServiceName   = 'Windows11Zombie-Chat'
-        HealthTask    = 'Windows11Zombie-Health'
-        FirewallGroup = 'Windows11 Zombie'
-        NonInteractive= [bool]($env:ZOMBIE_NONINTERACTIVE -eq '1')
-    }
-    # Re-derive dependent paths from the install root so callers that
-    # mutate AzConfig.InstallRoot get a consistent view.
-    Update-AzPaths
-}
-
 function Update-AzPaths {
     $root = $script:AzConfig.InstallRoot
     $script:AzConfig.BinDir       = Join-Path $root 'bin'
@@ -50,6 +34,23 @@ function Update-AzPaths {
     $script:AzConfig.AuditLog     = Join-Path (Join-Path $root 'logs') 'audit.log'
     $script:AzConfig.InstallLog   = Join-Path (Join-Path $root 'logs') 'install.log'
 }
+
+if (-not (Test-Path Variable:script:AzConfig) -or -not $script:AzConfig) {
+    function _Coalesce { param([object[]]$Values) foreach ($v in $Values) { if ($null -ne $v -and "$v" -ne '') { return $v } } return $null }
+    $script:AzConfig = [ordered]@{
+        AgentUser     = (_Coalesce @($env:ZOMBIE_USER, 'zombie'))
+        InstallRoot   = (_Coalesce @($env:AI_ZOMBIE_ROOT, (Join-Path $env:ProgramData 'AiZombie')))
+        ChatPort      = [int](_Coalesce @($env:ZOMBIE_CHAT_PORT, 7878))
+        ServiceName   = 'Windows11Zombie-Chat'
+        HealthTask    = 'Windows11Zombie-Health'
+        FirewallGroup = 'Windows11 Zombie'
+        NonInteractive= [bool]($env:ZOMBIE_NONINTERACTIVE -eq '1')
+    }
+    # Re-derive dependent paths from the install root so callers that
+    # mutate AzConfig.InstallRoot get a consistent view.
+    Update-AzPaths
+}
+
 
 # ---------------------------------------------------------------------
 # Logging
@@ -390,4 +391,223 @@ function Ensure-SecretsFile {
 "@
     Set-Content -LiteralPath $Path -Value $template -Encoding UTF8
     Set-AiZombieAcl -Path $Path -AgentUser $AgentUser -AgentAccess ReadOnlySecrets
+}
+
+# ---------------------------------------------------------------------
+# Backup / restore
+# ---------------------------------------------------------------------
+
+function New-AiZombieBackup {
+    <#
+    .SYNOPSIS
+        Snapshot the windows11-zombie state, secrets, config, and logs.
+    .DESCRIPTION
+        Produces a timestamped zip under ``<InstallRoot>\state\backups\``
+        with a ``SHA256SUMS`` manifest so ``Restore-AiZombieBackup``
+        can verify integrity.
+
+        Captured by default:
+          * ``etc\``            policy, settings, skills.d
+          * ``secrets\env``     provider keys (ACL'd; treat the zip
+                                as sensitive)
+          * ``state\conversations.db`` via SQLite ``.backup``
+          * ``state\health.json``
+          * ``logs\audit.log``  with hash chain intact
+
+        The full install tree (the payload + venv) is excluded — it is
+        reproducible from the release zip.
+
+        Caller is responsible for elevation. Returns the path to the
+        created zip.
+    #>
+    [CmdletBinding()]
+    param(
+        [string]$DestDir,
+        [int]$Retain = 14
+    )
+    $cfg = $script:AzConfig
+    if (-not $DestDir) {
+        $DestDir = Join-Path $cfg.StateDir 'backups'
+    }
+    Ensure-Directory $DestDir | Out-Null
+
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $tempBase = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { [System.IO.Path]::GetTempPath() }
+    $stage = Join-Path $tempBase "windows11-zombie-backup-$stamp"
+    if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+    New-Item -ItemType Directory -Path $stage | Out-Null
+
+    try {
+        if (Test-Path $cfg.EtcDir) {
+            Copy-Item -Recurse -Force $cfg.EtcDir (Join-Path $stage 'etc')
+        }
+        if (Test-Path $cfg.SecretsFile) {
+            $sDest = Join-Path $stage 'secrets'
+            Ensure-Directory $sDest | Out-Null
+            Copy-Item -Force $cfg.SecretsFile (Join-Path $sDest 'env')
+        }
+        if (Test-Path $cfg.StateDir) {
+            $stDest = Join-Path $stage 'state'
+            Ensure-Directory $stDest | Out-Null
+            $db = Join-Path $cfg.StateDir 'conversations.db'
+            if (Test-Path $db) {
+                # Prefer SQLite online backup if sqlite3.exe is on PATH;
+                # fall back to a plain copy after a Stop-Service hint.
+                $sqlite = Get-Command sqlite3 -ErrorAction SilentlyContinue
+                if ($sqlite) {
+                    & $sqlite.Source $db ".backup '$(Join-Path $stDest 'conversations.db')'" | Out-Null
+                } else {
+                    Copy-Item -Force $db (Join-Path $stDest 'conversations.db')
+                }
+            }
+            $hj = Join-Path $cfg.StateDir 'health.json'
+            if (Test-Path $hj) { Copy-Item -Force $hj $stDest }
+        }
+        if (Test-Path $cfg.LogDir) {
+            $lDest = Join-Path $stage 'logs'
+            Ensure-Directory $lDest | Out-Null
+            foreach ($n in @('audit.log', 'install.log', 'events.log')) {
+                $src = Join-Path $cfg.LogDir $n
+                if (Test-Path $src) { Copy-Item -Force $src $lDest }
+            }
+        }
+
+        # Manifest
+        $manifestPath = Join-Path $stage 'SHA256SUMS'
+        $entries = Get-ChildItem -Recurse -File -Path $stage |
+            Where-Object { $_.FullName -ne $manifestPath } |
+            Sort-Object FullName |
+            ForEach-Object {
+                $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLower()
+                $rel = $_.FullName.Substring($stage.Length).TrimStart('\','/').Replace('\','/')
+                "$hash  $rel"
+            }
+        $entries | Set-Content -LiteralPath $manifestPath -Encoding ascii
+
+        $zip = Join-Path $DestDir "windows11-zombie-state-$stamp.zip"
+        if (Test-Path $zip) { Remove-Item -Force $zip }
+        Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
+        Write-AzLog -Level OK "Wrote backup $zip"
+    } finally {
+        Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
+    }
+
+    if ($Retain -gt 0) {
+        Get-ChildItem -File -Path $DestDir -Filter 'windows11-zombie-state-*.zip' |
+            Sort-Object LastWriteTime -Descending |
+            Select-Object -Skip $Retain |
+            ForEach-Object {
+                Remove-Item -Force $_.FullName -ErrorAction SilentlyContinue
+                Write-AzLog "Pruned old backup $($_.Name)"
+            }
+    }
+
+    return $zip
+}
+
+function Restore-AiZombieBackup {
+    <#
+    .SYNOPSIS
+        Restore a windows11-zombie backup zip into the install root.
+    .DESCRIPTION
+        Verifies the ``SHA256SUMS`` manifest inside the zip, lays the
+        files back into ``<InstallRoot>\{etc,secrets,state,logs}``,
+        and re-applies the standard ACLs.
+
+        Refuses to overwrite a running install unless ``-Force`` is
+        passed and the service is stopped first.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [switch]$Force
+    )
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Backup not found: $Path"
+    }
+    $cfg = $script:AzConfig
+    if (Get-Command Get-Service -ErrorAction SilentlyContinue) {
+        $svc = Get-Service -Name $cfg.ServiceName -ErrorAction SilentlyContinue
+        if ($svc -and $svc.Status -eq 'Running' -and -not $Force) {
+            throw "Service $($cfg.ServiceName) is running. Stop it first or pass -Force."
+        }
+    }
+
+    $tempBase = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { [System.IO.Path]::GetTempPath() }
+    $stage = Join-Path $tempBase ("windows11-zombie-restore-" + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $stage | Out-Null
+    try {
+        Expand-Archive -LiteralPath $Path -DestinationPath $stage -Force
+
+        $manifest = Join-Path $stage 'SHA256SUMS'
+        if (-not (Test-Path $manifest)) {
+            throw "Backup is missing SHA256SUMS manifest: $Path"
+        }
+        foreach ($entry in Get-Content -LiteralPath $manifest) {
+            if (-not $entry) { continue }
+            $parts = $entry -split '\s+', 2
+            if ($parts.Count -ne 2) { continue }
+            $expected = $parts[0].ToLower()
+            $rel = $parts[1]
+            $file = Join-Path $stage ($rel -replace '/', '\')
+            if (-not (Test-Path -LiteralPath $file)) {
+                throw "Backup manifest references missing file: $rel"
+            }
+            $actual = (Get-FileHash -Algorithm SHA256 -LiteralPath $file).Hash.ToLower()
+            if ($actual -ne $expected) {
+                throw "Backup integrity check failed for $rel (expected $expected, got $actual)"
+            }
+        }
+        Write-AzLog -Level OK "Backup integrity verified ($($(Get-Content $manifest).Count) entries)."
+
+        # Restore tree-by-tree.
+        foreach ($pair in @(
+            @{ Src = 'etc';     Dst = $cfg.EtcDir },
+            @{ Src = 'secrets'; Dst = $cfg.SecretsDir },
+            @{ Src = 'state';   Dst = $cfg.StateDir },
+            @{ Src = 'logs';    Dst = $cfg.LogDir }
+        )) {
+            $srcPath = Join-Path $stage $pair.Src
+            if (-not (Test-Path $srcPath)) { continue }
+            Ensure-Directory $pair.Dst | Out-Null
+            Copy-Item -Recurse -Force (Join-Path $srcPath '*') $pair.Dst
+        }
+
+        # Re-apply ACLs (no-op if the agent user isn't present yet).
+        if (Get-Command Get-Acl -ErrorAction SilentlyContinue) {
+            Set-AiZombieAcl -Path $cfg.LogDir     -AgentUser $cfg.AgentUser -AgentAccess ReadWrite
+            Set-AiZombieAcl -Path $cfg.StateDir   -AgentUser $cfg.AgentUser -AgentAccess ReadWrite
+            Set-AiZombieAcl -Path $cfg.SecretsDir -AgentUser $cfg.AgentUser -AgentAccess ReadOnlySecrets
+        }
+
+        Write-AzLog -Level OK "Restore complete from $Path"
+    } finally {
+        Remove-Item -Recurse -Force $stage -ErrorAction SilentlyContinue
+    }
+}
+
+function Register-BackupScheduledTask {
+    <#
+    .SYNOPSIS
+        Register a daily ``Windows11Zombie-Backup`` Scheduled Task.
+    #>
+    param(
+        [string]$TaskName = 'Windows11Zombie-Backup',
+        [Parameter(Mandatory)][string]$InstallerPath,
+        [string]$RunAt = '03:00'
+    )
+    $action  = New-ScheduledTaskAction -Execute 'pwsh.exe' `
+        -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$InstallerPath`" backup"
+    $trigger = New-ScheduledTaskTrigger -Daily -At $RunAt
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+        -StartWhenAvailable
+    $principal = New-ScheduledTaskPrincipal -UserId 'NT AUTHORITY\SYSTEM' `
+        -LogonType ServiceAccount -RunLevel Highest
+
+    if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
+    }
+    Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger `
+        -Settings $settings -Principal $principal `
+        -Description "windows11-zombie daily state backup." | Out-Null
 }

@@ -544,17 +544,60 @@ class Handler(BaseHTTPRequestHandler):
         return
 
     # ---- helpers ----
+    def _allow_remote(self) -> bool:
+        return (os.environ.get("ZOMBIE_ALLOW_REMOTE") or "").strip() in {"1", "true", "yes", "on"}
+
+    def _origin_ok(self) -> bool:
+        """Reject requests whose Host or Origin is not loopback."""
+        if self._allow_remote():
+            return True
+        host = (self.headers.get("Host") or "").split(":", 1)[0].strip("[]").lower()
+        allowed_hosts = {"127.0.0.1", "localhost", "::1"}
+        if host and host not in allowed_hosts:
+            return False
+        origin = self.headers.get("Origin") or self.headers.get("Referer") or ""
+        if origin:
+            from urllib.parse import urlparse
+            try:
+                netloc_host = urlparse(origin).hostname or ""
+            except ValueError:
+                return False
+            if netloc_host and netloc_host.lower() not in allowed_hosts:
+                return False
+        return True
+
+    def _auth_ok(self) -> bool:
+        """Validate the optional bearer token when ZOMBIE_CHAT_TOKEN is set."""
+        token = os.environ.get("ZOMBIE_CHAT_TOKEN")
+        if not token:
+            return True
+        header = self.headers.get("Authorization") or ""
+        if not header.lower().startswith("bearer "):
+            return False
+        presented = header.split(" ", 1)[1].strip()
+        # Constant-time compare.
+        import hmac
+        return hmac.compare_digest(presented, token)
+
     def _send_json(self, payload: Any, status: int = 200) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
+        # Defense-in-depth: defeat XHR from a third-party origin even
+        # if Host/Origin somehow validated.
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(body)
 
     def _read_json(self) -> dict[str, Any]:
+        # FIX (security): cap request body to 1 MiB to bound memory.
+        max_bytes = 1 * 1024 * 1024
         length = int(self.headers.get("Content-Length") or 0)
         if length <= 0:
+            return {}
+        if length > max_bytes:
             return {}
         raw = self.rfile.read(length).decode("utf-8", "replace")
         try:
@@ -563,8 +606,22 @@ class Handler(BaseHTTPRequestHandler):
             return {}
         return data if isinstance(data, dict) else {}
 
+    def _gate(self) -> bool:
+        if not self._origin_ok():
+            self.send_error(HTTPStatus.FORBIDDEN, "non-loopback origin")
+            return False
+        if not self._auth_ok():
+            self.send_response(HTTPStatus.UNAUTHORIZED)
+            self.send_header("WWW-Authenticate", '******"windows11-zombie"')
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return False
+        return True
+
     # ---- routes ----
     def do_GET(self) -> None:  # noqa: N802
+        if not self._gate():
+            return
         if self.path == "/" or self.path == "/index.html":
             body = _render_index(self.app)
             self.send_response(200)
@@ -603,6 +660,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_error(HTTPStatus.NOT_FOUND)
 
     def do_POST(self) -> None:  # noqa: N802
+        if not self._gate():
+            return
         if self.path == "/api/message":
             data = self._read_json()
             prompt = (data.get("prompt") or "").strip()

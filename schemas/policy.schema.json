@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/japer-technology/windows11-zombie/schemas/policy.schema.json",
+  "title": "windows11-zombie policy.yaml",
+  "description": "Schema for payload/etc/policy.yaml. The agent's policy gate re-reads this file on every classification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["settings", "classes", "rules"],
+  "properties": {
+    "settings": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "destructive_confirmation": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Phrase the operator must type before a destructive action runs."
+        },
+        "default_class": {
+          "$ref": "#/$defs/className",
+          "description": "Fail-closed class for unknown commands. Anything other than 'destructive' weakens safety."
+        }
+      }
+    },
+    "sudo_allow_list": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Program basenames pre-classified as system_change when sudo-prefixed."
+    },
+    "classes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["read_only", "user_change", "system_change", "network_change", "destructive"],
+      "properties": {
+        "read_only":      { "$ref": "#/$defs/classDef" },
+        "user_change":    { "$ref": "#/$defs/classDef" },
+        "system_change":  { "$ref": "#/$defs/classDef" },
+        "network_change": { "$ref": "#/$defs/classDef" },
+        "destructive":    { "$ref": "#/$defs/classDef" }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pattern", "class"],
+        "properties": {
+          "pattern": { "type": "string", "minLength": 1 },
+          "class": { "$ref": "#/$defs/className" }
+        }
+      }
+    },
+    "tool_classes": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/className" }
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_tool_calls_per_turn":          { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "max_elevated_calls_per_turn":      { "type": "integer", "minimum": 0, "maximum": 1000 }
+      }
+    }
+  },
+  "$defs": {
+    "className": {
+      "enum": ["read_only", "user_change", "system_change", "network_change", "destructive"]
+    },
+    "classDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "approval":       { "enum": ["auto", "required"] },
+        "confirm_phrase": { "type": "boolean" },
+        "description":    { "type": "string" }
+      }
+    }
+  }
+}

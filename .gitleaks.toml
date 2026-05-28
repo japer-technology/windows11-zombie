@@ -1,0 +1,30 @@
+# Gitleaks configuration for windows11-zombie.
+#
+# Extends the default ruleset; we add a few project-specific allowlists
+# so that placeholder values in docs and tests do not trip the scan.
+
+title = "windows11-zombie gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Project-specific allowlist"
+paths = [
+    '''CHANGELOG\.md''',
+    '''docs/.*\.md''',
+    '''tests/.*''',
+    '''payload/agent/audit\.py''',         # contains redaction patterns by design
+    '''payload/bin/Collect-Diagnostics\.ps1''',
+    '''payload/bin/Verify-Audit\.ps1''',
+    '''README\.md''',
+]
+regexes = [
+    # Example/placeholder values used in docs and templates.
+    '''sk-\.\.\.''',
+    '''sk-ant-\.\.\.''',
+    '''sk-test-12345''',
+    '''sk-xyz12345678''',
+    '''sk-abcdefghijklmno''',
+    '''tskey-auth-''',
+]
