@@ -53,7 +53,7 @@ function Invoke-Help {
 function Invoke-Lint {
     Write-Host "==> PowerShell syntax parse"
     $ps1Files = Get-ChildItem -Recurse -File -Include *.ps1, *.psm1, *.psd1 -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '\\dist\\' -and $_.FullName -notmatch '/dist/' }
+        Where-Object { $_.FullName -notmatch '\\dist\\' -and $_.FullName -notmatch '/dist/' -and $_.FullName -notmatch '[\\/]examples[\\/]dsc[\\/]' }
     foreach ($f in $ps1Files) {
         $tokens = $null; $errs = $null
         [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errs)
@@ -102,6 +102,26 @@ print("ok")
             & $py.Source $tmp (Join-Path $RepoRoot 'payload/etc/policy.yaml')
             if ($LASTEXITCODE -ne 0) { throw "policy.yaml failed to parse" }
         } finally { Remove-Item $tmp -ErrorAction SilentlyContinue }
+
+        Write-Host "==> policy.yaml schema validation"
+        $schemaCode = @'
+import sys, json, yaml, pathlib
+data = yaml.safe_load(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+schema = json.loads(pathlib.Path(sys.argv[2]).read_text(encoding="utf-8"))
+try:
+    import jsonschema
+except ImportError:
+    print("jsonschema not installed; skipping schema validation")
+    sys.exit(0)
+jsonschema.validate(instance=data, schema=schema)
+print("schema ok")
+'@
+        $tmp2 = New-TemporaryFile
+        Set-Content -Path $tmp2 -Value $schemaCode -Encoding utf8
+        try {
+            & $py.Source $tmp2 (Join-Path $RepoRoot 'payload/etc/policy.yaml') (Join-Path $RepoRoot 'schemas/policy.schema.json')
+            if ($LASTEXITCODE -ne 0) { throw "policy.yaml does not validate against schemas/policy.schema.json" }
+        } finally { Remove-Item $tmp2 -ErrorAction SilentlyContinue }
     }
     Write-Host "==> lint OK" -ForegroundColor Green
 }
@@ -111,6 +131,40 @@ function Invoke-Test {
     if (-not (Test-Path $smoke)) { throw "tests/Smoke.ps1 missing" }
     & pwsh -NoProfile -File $smoke -Mode all
     if ($LASTEXITCODE -ne 0) { throw "tests/Smoke.ps1 failed (exit $LASTEXITCODE)" }
+
+    # Python unit tests (best-effort: skip cleanly if pytest is absent).
+    $pyTests = Join-Path $RepoRoot 'tests/python'
+    if (Test-Path $pyTests) {
+        $py = (Get-Command python -ErrorAction SilentlyContinue) ?? (Get-Command python3 -ErrorAction SilentlyContinue)
+        if ($py) {
+            $hasPytest = $false
+            & $py.Source -c "import pytest" 2>$null
+            if ($LASTEXITCODE -eq 0) { $hasPytest = $true }
+            if ($hasPytest) {
+                Write-Host "==> pytest tests/python"
+                & $py.Source -m pytest $pyTests -q
+                if ($LASTEXITCODE -ne 0) { throw "pytest failed (exit $LASTEXITCODE)" }
+            } else {
+                Write-Host "==> pytest not installed; skipping tests/python (pip install pytest)" -ForegroundColor Yellow
+            }
+        }
+    }
+
+    # Pester tests (best-effort).
+    $pester = Join-Path $RepoRoot 'tests/Pester'
+    if (Test-Path $pester) {
+        if (Get-Module -ListAvailable -Name Pester) {
+            Write-Host "==> Pester tests/Pester"
+            Import-Module Pester -MinimumVersion 5.0 -ErrorAction SilentlyContinue
+            $cfg = New-PesterConfiguration
+            $cfg.Run.Path = $pester
+            $cfg.Output.Verbosity = 'Normal'
+            $cfg.Run.Throw = $true
+            Invoke-Pester -Configuration $cfg
+        } else {
+            Write-Host "==> Pester not installed; skipping tests/Pester (Install-Module Pester)" -ForegroundColor Yellow
+        }
+    }
 }
 
 function Invoke-Verify {
@@ -128,10 +182,17 @@ function Invoke-Package {
     $paths = @(
         'scripts', 'payload', 'tests', 'build.ps1', 'VERSION',
         'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md',
-        'LICENSE', '.editorconfig', 'SECURITY.md', 'docs'
+        'LICENSE', '.editorconfig', 'SECURITY.md', 'docs', 'schemas'
     ) | Where-Object { Test-Path (Join-Path $RepoRoot $_) }
     Compress-Archive -Path ($paths | ForEach-Object { Join-Path $RepoRoot $_ }) -DestinationPath $zip -Force
+
+    # Emit SHA256SUMS alongside the zip so releases are verifiable.
+    $sumsPath = Join-Path $dist "SHA256SUMS"
+    $sha = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLower()
+    "$sha  $(Split-Path -Leaf $zip)" | Set-Content -LiteralPath $sumsPath -Encoding ascii -NoNewline
+    Add-Content -LiteralPath $sumsPath -Value ""
     Write-Host "Wrote $zip"
+    Write-Host "Wrote $sumsPath"
 }
 
 function Invoke-Clean {

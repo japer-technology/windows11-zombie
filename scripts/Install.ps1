@@ -37,11 +37,13 @@
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('install','verify','doctor','repair','uninstall')]
+    [ValidateSet('install','verify','doctor','repair','uninstall','backup','restore')]
     [string]$Subcommand = 'install',
 
     [switch]$SkipDependencies,
-    [switch]$SkipTailscale
+    [switch]$SkipTailscale,
+    [string]$Path,
+    [switch]$Force
 )
 
 . (Join-Path $PSScriptRoot 'Common.ps1')
@@ -104,6 +106,7 @@ function Invoke-Install {
         -ServerScript (Join-Path $cfg.AgentDir 'server.py') `
         -Port $cfg.ChatPort
     Register-HealthScheduledTask -ScriptPath (Join-Path $cfg.BinDir 'Health-Check.ps1')
+    Register-BackupScheduledTask -InstallerPath (Join-Path $PSScriptRoot 'Install.ps1')
 
     # 8. Firewall
     Ensure-FirewallRules
@@ -173,18 +176,73 @@ function Invoke-Doctor {
 }
 
 function Invoke-Repair {
-    Write-AzLog "repair: re-applying ACLs, service config, firewall rules."
+    Write-AzLog "repair: re-applying ACLs, service config, firewall rules, scheduled tasks."
     Assert-Administrator
     $cfg = $script:AzConfig
+
+    # Re-create install root if a sibling tree was deleted.
+    foreach ($p in @($cfg.InstallRoot, $cfg.BinDir, $cfg.AgentDir, $cfg.EtcDir,
+                     $cfg.SecretsDir, $cfg.LogDir, $cfg.StateDir, $cfg.SkillsDir,
+                     $cfg.PolicyDir, (Split-Path $cfg.PiSettings -Parent))) {
+        Ensure-Directory $p | Out-Null
+    }
+
     Set-AiZombieAcl -Path $cfg.InstallRoot -AgentUser $cfg.AgentUser -AgentAccess Read
     Set-AiZombieAcl -Path $cfg.LogDir       -AgentUser $cfg.AgentUser -AgentAccess ReadWrite
     Set-AiZombieAcl -Path $cfg.StateDir     -AgentUser $cfg.AgentUser -AgentAccess ReadWrite
     Set-AiZombieAcl -Path $cfg.SecretsDir   -AgentUser $cfg.AgentUser -AgentAccess ReadOnlySecrets
+
+    # Re-create the local agent account if missing.
+    Ensure-AgentAccount -AgentUser $cfg.AgentUser
+
+    # Re-create secrets template if it's gone (operator must repaste key).
+    Ensure-SecretsFile -Path $cfg.SecretsFile -AgentUser $cfg.AgentUser
+
+    # Re-create the venv if Python is broken.
+    $venvPython = Join-Path $cfg.InstallRoot 'agent-env\Scripts\python.exe'
+    $needVenv = $true
+    if (Test-Path $venvPython) {
+        try {
+            & $venvPython -c "import sys" 2>$null | Out-Null
+            $needVenv = ($LASTEXITCODE -ne 0)
+        } catch { $needVenv = $true }
+    }
+    if ($needVenv) {
+        Write-AzLog -Level WARN "Agent venv missing or broken; rebuilding."
+        $setup = Join-Path $cfg.BinDir 'Setup-AgentVenv.ps1'
+        if (Test-Path $setup) {
+            & $setup -VenvDir (Join-Path $cfg.InstallRoot 'agent-env')
+        }
+    }
+
+    # Re-register firewall, service, scheduled tasks (each idempotent).
     Ensure-FirewallRules
+    if (Test-Path $venvPython) {
+        Register-AiZombieService -PythonExe $venvPython `
+            -ServerScript (Join-Path $cfg.AgentDir 'server.py') `
+            -Port $cfg.ChatPort
+    }
+    if (Test-Path (Join-Path $cfg.BinDir 'Health-Check.ps1')) {
+        Register-HealthScheduledTask -ScriptPath (Join-Path $cfg.BinDir 'Health-Check.ps1')
+    }
+    Register-BackupScheduledTask -InstallerPath (Join-Path $PSScriptRoot 'Install.ps1')
+
     if (Get-Service -Name $cfg.ServiceName -ErrorAction SilentlyContinue) {
         Restart-Service -Name $cfg.ServiceName
         Write-AzLog -Level OK "Restarted $($cfg.ServiceName)."
     }
+}
+
+function Invoke-Backup {
+    Assert-Administrator
+    $zip = New-AiZombieBackup
+    Write-AzLog -Level OK "Backup: $zip"
+}
+
+function Invoke-Restore {
+    Assert-Administrator
+    if (-not $Path) { throw "restore requires -Path <backup.zip>" }
+    Restore-AiZombieBackup -Path $Path -Force:$Force
 }
 
 function Invoke-Uninstall {
@@ -233,4 +291,6 @@ switch ($Subcommand) {
     'doctor'    { Invoke-Doctor }
     'repair'    { Invoke-Repair }
     'uninstall' { Invoke-Uninstall }
+    'backup'    { Invoke-Backup }
+    'restore'   { Invoke-Restore }
 }

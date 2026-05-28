@@ -61,11 +61,51 @@ class History:
         path.parent.mkdir(parents=True, exist_ok=True)
         self._path = path
         self._lock = threading.Lock()
+
+        # FIX (durability): integrity-check on open. If the file is
+        # malformed we move it aside and start fresh — the only data
+        # loss is conversation history, which is non-critical.
+        self._integrity_check_or_move_aside()
+
         self._conn = sqlite3.connect(str(path), check_same_thread=False)
         self._conn.execute("PRAGMA foreign_keys = ON")
+        # WAL improves crash recovery and reduces "database is locked"
+        # under concurrent writes from the bridge processes. NORMAL
+        # synchronous is the recommended pairing — durable across
+        # process crashes, may lose a transaction on power loss.
+        try:
+            self._conn.execute("PRAGMA journal_mode = WAL")
+            self._conn.execute("PRAGMA synchronous = NORMAL")
+        except sqlite3.DatabaseError:
+            # An OS that does not support WAL (rare) falls back to the
+            # default rollback journal. We do not consider this fatal.
+            pass
         self._migrate()
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
+
+    def _integrity_check_or_move_aside(self) -> None:
+        if not self._path.exists() or self._path.stat().st_size == 0:
+            return
+        try:
+            probe = sqlite3.connect(str(self._path))
+            try:
+                result = probe.execute("PRAGMA integrity_check").fetchone()
+            finally:
+                probe.close()
+        except sqlite3.DatabaseError:
+            result = None
+        if result and isinstance(result[0], str) and result[0].lower() == "ok":
+            return
+        # Move the bad file aside; the caller will recreate it.
+        ts = time.strftime("%Y%m%dT%H%M%S", time.localtime())
+        bad = self._path.with_name(f"{self._path.name}.bad.{ts}")
+        try:
+            shutil.move(str(self._path), str(bad))
+        except OSError:
+            # Best effort; if we cannot move it, sqlite3.connect will
+            # raise a clearer error below.
+            pass
 
     # ------------------------------------------------------------------
     # Migration
