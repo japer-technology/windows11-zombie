@@ -23,20 +23,20 @@ and the per-item history in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Later (`0.6.x` and beyond)
 
-* End-to-end VM test in CI (Windows 11 sandbox or Azure VM).
+* End-to-end VM test in CI (Windows 10/11 sandbox or Azure VM).
 * OpenTelemetry exporter for fleet operators.
 * Group Policy / Intune deployment guide with worked examples.
 * Optional remote-attestation / TPM-bound audit anchors.
 
 ## Out of scope
 
-* Multi-user chat or hosted/shared modes — Windows 11 Zombie is and
+* Multi-user chat or hosted/shared modes — Windows Zombie is and
   remains a single-machine local admin.
 * Cross-platform parity with the Linux variants is not a goal; the
   `docs/ALTERNATIVE-*.md` documents capture that history.
 
 ## Asking for changes
 
-Open an issue or start a [discussion](https://github.com/japer-technology/windows11-zombie/discussions)
+Open an issue or start a [discussion](https://github.com/japer-technology/windows-zombie/discussions)
 before sending a roadmap-changing PR. ADRs live under
 [`docs/ADR/`](docs/ADR/).

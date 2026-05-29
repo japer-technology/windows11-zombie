@@ -1,6 +1,6 @@
 # Maintainers
 
-The current maintainers of `windows11-zombie`. Each maintainer can
+The current maintainers of `windows-zombie`. Each maintainer can
 merge pull requests, cut releases, and respond to security advisories.
 
 | Handle | Areas | Time zone |

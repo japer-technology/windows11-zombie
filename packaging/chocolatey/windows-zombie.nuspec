@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>windows-zombie</id>
+    <version>0.0.0</version>
+    <title>windows-zombie</title>
+    <authors>Japer Technology</authors>
+    <projectUrl>https://github.com/japer-technology/windows-zombie</projectUrl>
+    <licenseUrl>https://github.com/japer-technology/windows-zombie/blob/main/LICENSE</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Local AI sysadmin agent for Windows 10 and 11.</description>
+    <summary>Local AI sysadmin agent for Windows 10 and 11.</summary>
+    <tags>sysadmin ai automation windows admin</tags>
+    <bugTrackerUrl>https://github.com/japer-technology/windows-zombie/issues</bugTrackerUrl>
+    <docsUrl>https://github.com/japer-technology/windows-zombie/tree/main/docs</docsUrl>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>

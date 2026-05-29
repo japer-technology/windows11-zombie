@@ -1,6 +1,6 @@
 # Observability
 
-windows11-zombie ships with three opt-in observability hooks:
+windows-zombie ships with three opt-in observability hooks:
 
 1. **`events.log`** — sibling of `audit.log` under `state/logs/`.
    Same JSONL shape but **outside** the hash chain — used for routine

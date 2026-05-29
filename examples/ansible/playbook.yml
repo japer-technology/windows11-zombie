@@ -1,13 +1,13 @@
 ---
-# Ansible playbook for fleet rollout of windows11-zombie.
+# Ansible playbook for fleet rollout of windows-zombie.
 # Requires the win_chocolatey / ansible.windows collection.
-- name: Install windows11-zombie
+- name: Install windows-zombie
   hosts: windows
   gather_facts: true
   vars:
     release_version: "0.0.0"
-    release_url: "https://github.com/japer-technology/windows11-zombie/releases/download/v{{ release_version }}/windows11-zombie-{{ release_version }}.zip"
-    install_root: 'C:\ProgramData\windows11-zombie-src'
+    release_url: "https://github.com/japer-technology/windows-zombie/releases/download/v{{ release_version }}/windows-zombie-{{ release_version }}.zip"
+    install_root: 'C:\ProgramData\windows-zombie-src'
   tasks:
     - name: Create stage directory
       ansible.windows.win_file:

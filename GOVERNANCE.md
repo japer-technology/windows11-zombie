@@ -1,6 +1,6 @@
 # Governance
 
-`windows11-zombie` is maintained by [japer-technology](https://github.com/japer-technology).
+`windows-zombie` is maintained by [japer-technology](https://github.com/japer-technology).
 This document captures how decisions are made so contributors know
 what to expect.
 

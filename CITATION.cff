@@ -1,16 +1,16 @@
 cff-version: 1.2.0
-title: windows11-zombie
+title: windows-zombie
 message: >-
-  If you reference Windows 11 Zombie in academic or security
+  If you reference Windows Zombie in academic or security
   research, please cite it using this metadata.
 type: software
 authors:
   - name: japer-technology
     website: https://github.com/japer-technology
-repository-code: https://github.com/japer-technology/windows11-zombie
+repository-code: https://github.com/japer-technology/windows-zombie
 abstract: >-
   A private, policy-gated local AI Systems Administrator for
-  Microsoft Windows 11. Installs a loopback-only chat daemon, a
+  Microsoft Windows 10 and 11. Installs a loopback-only chat daemon, a
   portable Python/Node agent runtime, a Windows Service supervisor,
   Defender Firewall rules, and an ACL-protected state tree under
   C:\ProgramData\AiZombie\.

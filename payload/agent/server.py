@@ -1,4 +1,4 @@
-"""Windows 11 Zombie chat service.
+"""Windows Zombie chat service.
 
 A small loopback-only HTTP server that:
 
@@ -68,7 +68,7 @@ def _agent_account() -> str:
 
 AGENT_USER = _agent_account()
 
-APPEND_SYSTEM_TEMPLATE = """You are the AI Systems Administrator for a Windows 11 Desktop machine.
+APPEND_SYSTEM_TEMPLATE = """You are the AI Systems Administrator for a Microsoft Windows 10 or Windows 11 machine.
 
 You operate as the local Windows account "{agent_user}", which is a
 member of the Administrators group. The chat service itself runs as
@@ -182,14 +182,20 @@ def machine_facts() -> dict[str, str]:
     }
     if _paths.is_windows():
         # ``platform.platform()`` produces e.g. ``Windows-10-10.0.22631-SP0``
-        # which is misleading on Windows 11; build a friendlier label
-        # from the release+version pair when both are available.
+        # whose "10" prefix is misleading on Windows 11. Decide the marketing
+        # name from the OS build number instead: Windows 11 starts at build
+        # 22000, everything below that (down to the supported 17763/1809
+        # floor) is Windows 10.
         rel = platform.release() or ""
         ver = platform.version() or ""
-        if rel.startswith("10") and ver.startswith("10.0.22"):
-            facts["os"] = "Windows 10 (22000 < build < 22621)"
-        elif rel.startswith("10") and ver.startswith("10.0.2"):
-            facts["os"] = f"Windows 11 (build {ver.split('.')[-1]})"
+        build = 0
+        parts = ver.split(".")
+        if len(parts) >= 3 and parts[2].isdigit():
+            build = int(parts[2])
+        if build >= 22000:
+            facts["os"] = f"Windows 11 (build {build})"
+        elif build > 0:
+            facts["os"] = f"Windows 10 (build {build})"
         else:
             facts["os"] = f"Windows {rel} ({ver})"
         return facts
@@ -529,7 +535,7 @@ def _render_index(app: App) -> bytes:
         banner = f"connected ({name})"
     text = INDEX_HTML_PATH.read_text(encoding="utf-8")
     text = text.replace("{{HOSTNAME}}", html.escape(facts.get("hostname", "?")))
-    text = text.replace("{{OS}}", html.escape(facts.get("os", "Windows 11")))
+    text = text.replace("{{OS}}", html.escape(facts.get("os", "Windows")))
     text = text.replace("{{PROVIDER_STATUS}}", html.escape(banner))
     examples = (HERE / "examples.md").read_text(encoding="utf-8") if (HERE / "examples.md").exists() else ""
     text = text.replace("{{EXAMPLES}}", html.escape(examples))
@@ -612,7 +618,7 @@ class Handler(BaseHTTPRequestHandler):
             return False
         if not self._auth_ok():
             self.send_response(HTTPStatus.UNAUTHORIZED)
-            self.send_header("WWW-Authenticate", '******"windows11-zombie"')
+            self.send_header("WWW-Authenticate", '******"windows-zombie"')
             self.send_header("Content-Length", "0")
             self.end_headers()
             return False
@@ -656,15 +662,15 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_error(HTTPStatus.NOT_FOUND)
                 return
             lines = [
-                "# HELP windows11_zombie_tool_invocations_total Total tool invocations.",
-                "# TYPE windows11_zombie_tool_invocations_total counter",
-                f"windows11_zombie_tool_invocations_total {getattr(self.app, '_metric_tool_calls', 0)}",
-                "# HELP windows11_zombie_policy_denies_total Total policy denials.",
-                "# TYPE windows11_zombie_policy_denies_total counter",
-                f"windows11_zombie_policy_denies_total {getattr(self.app, '_metric_policy_denies', 0)}",
-                "# HELP windows11_zombie_http_requests_total HTTP requests handled.",
-                "# TYPE windows11_zombie_http_requests_total counter",
-                f"windows11_zombie_http_requests_total {getattr(self.app, '_metric_http_requests', 0)}",
+                "# HELP windows_zombie_tool_invocations_total Total tool invocations.",
+                "# TYPE windows_zombie_tool_invocations_total counter",
+                f"windows_zombie_tool_invocations_total {getattr(self.app, '_metric_tool_calls', 0)}",
+                "# HELP windows_zombie_policy_denies_total Total policy denials.",
+                "# TYPE windows_zombie_policy_denies_total counter",
+                f"windows_zombie_policy_denies_total {getattr(self.app, '_metric_policy_denies', 0)}",
+                "# HELP windows_zombie_http_requests_total HTTP requests handled.",
+                "# TYPE windows_zombie_http_requests_total counter",
+                f"windows_zombie_http_requests_total {getattr(self.app, '_metric_http_requests', 0)}",
             ]
             body = ("\n".join(lines) + "\n").encode("utf-8")
             self.send_response(200)
@@ -725,7 +731,7 @@ def make_handler(app: App) -> type[Handler]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Windows 11 Zombie chat service")
+    parser = argparse.ArgumentParser(description="Windows Zombie chat service")
     parser.add_argument("--host", default=DEFAULT_HOST,
                         help="bind address (default: %(default)s)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT,
@@ -755,7 +761,7 @@ def main(argv: list[str] | None = None) -> int:
     server = ThreadingHTTPServer((args.host, args.port), make_handler(app))
     log_event("service_start", host=args.host, port=args.port,
               pid=os.getpid())
-    print(f"windows11-zombie chat listening on http://{args.host}:{args.port}/",
+    print(f"windows-zombie chat listening on http://{args.host}:{args.port}/",
           flush=True)
     try:
         server.serve_forever()

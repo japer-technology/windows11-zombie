@@ -1,6 +1,6 @@
 # Chat HTTP API
 
-The `Windows11Zombie-Chat` service exposes a small JSON HTTP API on
+The `WindowsZombie-Chat` service exposes a small JSON HTTP API on
 `127.0.0.1:7878` (configurable via `ZOMBIE_CHAT_PORT`). The server
 refuses to bind to any non-loopback address.
 

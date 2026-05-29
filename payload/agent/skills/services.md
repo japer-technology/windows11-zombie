@@ -15,7 +15,7 @@ Operating rules:
   -MaxEvents N` is `read_only`; prefer bounded reads over
   `Get-WinEvent -Wait`. Always include a small `-MaxEvents` cap so the
   output is captured.
-- Never disable `Windows11Zombie-Chat` or any service whose name
+- Never disable `WindowsZombie-Chat` or any service whose name
   contains `sshd`, `TermService`, or `Tailscale` without explicit
   operator approval — they are the remote-access lifeline.
 - For new services prefer `sc.exe create` or `New-Service`; do not

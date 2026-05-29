@@ -57,6 +57,32 @@ Describe 'AzConfig and Update-AzPaths' {
         $script:AzConfig.SecretsFile | Should -Be (Join-Path (Join-Path $script:TmpRoot 'secrets') 'env')
         $script:AzConfig.AuditLog    | Should -Be (Join-Path (Join-Path $script:TmpRoot 'logs') 'audit.log')
     }
+    It 'uses the renamed (version-neutral) service identifiers' {
+        $script:AzConfig.ServiceName   | Should -Be 'WindowsZombie-Chat'
+        $script:AzConfig.HealthTask    | Should -Be 'WindowsZombie-Health'
+        $script:AzConfig.FirewallGroup | Should -Be 'Windows Zombie'
+    }
+}
+
+Describe 'Supported-Windows gate' {
+    It 'exposes the generalised gate function' {
+        Get-Command Assert-SupportedWindows -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+    }
+    It 'keeps a backwards-compatible Assert-Windows11 alias' {
+        $alias = Get-Alias Assert-Windows11 -ErrorAction SilentlyContinue
+        $alias | Should -Not -BeNullOrEmpty
+        $alias.ResolvedCommand.Name | Should -Be 'Assert-SupportedWindows'
+    }
+    It 'sets the supported build floor to Windows 10 1809 (17763)' {
+        $script:MinSupportedWindowsBuild | Should -Be 17763
+        $script:Windows11MinBuild        | Should -Be 22000
+    }
+}
+
+Describe 'Remove-LegacyServiceArtifact' {
+    It 'is defined for the windows11-zombie -> windows-zombie migration' {
+        Get-Command Remove-LegacyServiceArtifact -ErrorAction SilentlyContinue | Should -Not -BeNullOrEmpty
+    }
 }
 
 Describe 'Ensure-Directory' {

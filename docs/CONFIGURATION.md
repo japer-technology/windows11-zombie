@@ -11,11 +11,11 @@ Set machine-wide values from an elevated PowerShell session:
 [System.Environment]::SetEnvironmentVariable('ZOMBIE_PROVIDER', 'openai', 'Machine')
 [System.Environment]::SetEnvironmentVariable('ZOMBIE_MODEL', 'gpt-4.1', 'Machine')
 [System.Environment]::SetEnvironmentVariable('AI_ZOMBIE_ROOT', 'C:\ProgramData\AiZombie', 'Machine')
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 Service processes read machine environment at start, so restart
-`Windows11Zombie-Chat` after changes.
+`WindowsZombie-Chat` after changes.
 
 ## Secrets file
 
@@ -64,7 +64,7 @@ classified in policy and audited.
 Restart the service after edits:
 
 ```powershell
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 ## Service identity
@@ -73,15 +73,15 @@ Default identity is `LocalSystem`. To run as the dedicated local
 Administrators account `zombie`:
 
 ```powershell
-sc.exe config Windows11Zombie-Chat obj= .\zombie password= <password>
-Restart-Service Windows11Zombie-Chat
+sc.exe config WindowsZombie-Chat obj= .\zombie password= <password>
+Restart-Service WindowsZombie-Chat
 ```
 
 To return to LocalSystem:
 
 ```powershell
-sc.exe config Windows11Zombie-Chat obj= LocalSystem
-Restart-Service Windows11Zombie-Chat
+sc.exe config WindowsZombie-Chat obj= LocalSystem
+Restart-Service WindowsZombie-Chat
 ```
 
 The `zombie` account gives a named ACL and audit identity, but it remains
@@ -92,7 +92,7 @@ an administrator. The policy gate is still the security boundary.
 Inspect the project rule group:
 
 ```powershell
-Get-NetFirewallRule -Group 'Windows11 Zombie'
+Get-NetFirewallRule -Group 'Windows Zombie'
 ```
 
 Create additional scoped rules with `New-NetFirewallRule -Group 'Windows11

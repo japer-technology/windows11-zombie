@@ -1,6 +1,6 @@
 # Documentation index
 
-`windows11-zombie` ships a deliberately small but complete documentation
+`windows-zombie` ships a deliberately small but complete documentation
 tree. The right starting point depends on what you're trying to do.
 
 ## I want to try it

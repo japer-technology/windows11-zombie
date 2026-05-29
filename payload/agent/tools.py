@@ -11,11 +11,11 @@ tool call is dispatched through this module:
   Rejections are recorded as ``tool_call_rejected_schema`` audit events
   by the server before any side effects.
 * :func:`dispatch` runs the registered shim. Shims wrap existing
-  Windows 11 Zombie helpers (``runner.run``, ``Path.read_text`` etc.) so
+  Windows Zombie helpers (``runner.run``, ``Path.read_text`` etc.) so
   the rest of the codebase keeps its existing invariants.
 
 The shapes intentionally avoid pulling in jsonschema or pydantic;
-operators install Windows 11 Zombie on stock Windows 11 and the agent
+operators install Windows Zombie on stock Windows 10 or Windows 11 and the agent
 venv should not gain third-party deps just to gate a dozen calls.
 """
 from __future__ import annotations

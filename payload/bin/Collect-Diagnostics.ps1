@@ -14,9 +14,9 @@ $ErrorActionPreference = 'Continue'
 
 $installRoot = if ($env:AI_ZOMBIE_ROOT) { $env:AI_ZOMBIE_ROOT } else { Join-Path $env:ProgramData 'AiZombie' }
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$bundleDir = Join-Path $env:TEMP "windows11-zombie-diagnostics-$stamp"
+$bundleDir = Join-Path $env:TEMP "windows-zombie-diagnostics-$stamp"
 New-Item -ItemType Directory -Force -Path $bundleDir | Out-Null
-$zipPath = Join-Path $env:TEMP "windows11-zombie-diagnostics-$stamp.zip"
+$zipPath = Join-Path $env:TEMP "windows-zombie-diagnostics-$stamp.zip"
 
 function Hide-Secrets {
     param([string]$Text)
@@ -51,9 +51,9 @@ Write-Host "[i] Collecting diagnostics into $bundleDir ..."
 Capture 'computer-info.txt'      { Get-ComputerInfo | Format-List }
 Capture 'os.txt'                  { Get-CimInstance Win32_OperatingSystem | Format-List }
 Capture 'disk.txt'                { Get-PSDrive -PSProvider FileSystem | Format-Table }
-Capture 'services.txt'            { Get-Service -Name 'Windows11Zombie-Chat','TermService','sshd' -ErrorAction SilentlyContinue | Format-Table }
-Capture 'sched-tasks.txt'         { Get-ScheduledTask -TaskName 'Windows11Zombie-*' | Format-List TaskName,State,LastRunTime,NextRunTime }
-Capture 'firewall.txt'            { Get-NetFirewallProfile | Format-Table; Get-NetFirewallRule -Group 'Windows11 Zombie' | Format-Table -AutoSize }
+Capture 'services.txt'            { Get-Service -Name 'WindowsZombie-Chat','TermService','sshd' -ErrorAction SilentlyContinue | Format-Table }
+Capture 'sched-tasks.txt'         { Get-ScheduledTask -TaskName 'WindowsZombie-*' | Format-List TaskName,State,LastRunTime,NextRunTime }
+Capture 'firewall.txt'            { Get-NetFirewallProfile | Format-Table; Get-NetFirewallRule -Group 'Windows Zombie' | Format-Table -AutoSize }
 Capture 'event-log-application.txt' { Get-WinEvent -LogName Application -MaxEvents 200 -ErrorAction SilentlyContinue | Format-Table TimeCreated,LevelDisplayName,ProviderName,Id }
 Capture 'tailscale.txt'           { if (Test-Path 'C:\Program Files\Tailscale\tailscale.exe') { & 'C:\Program Files\Tailscale\tailscale.exe' status } else { 'tailscale not installed' } }
 Capture 'verify.txt'              { & (Join-Path $PSScriptRoot '..\..\scripts\Install.ps1') verify }

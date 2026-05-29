@@ -1,14 +1,14 @@
-# Deploying windows11-zombie via Microsoft Intune
+# Deploying windows-zombie via Microsoft Intune
 
-This guide packages windows11-zombie as a Win32 app for Microsoft
-Intune so it can be deployed to Azure AD–joined Windows 11 devices.
+This guide packages windows-zombie as a Win32 app for Microsoft
+Intune so it can be deployed to Azure AD–joined Windows 10 and Windows 11 devices.
 
 ## 1. Prepare the source folder
 
 ```powershell
 # Download a tagged release (or run build.ps1 package locally)
 mkdir intune-stage
-Expand-Archive windows11-zombie-<version>.zip -DestinationPath intune-stage
+Expand-Archive windows-zombie-<version>.zip -DestinationPath intune-stage
 ```
 
 ## 2. Build the .intunewin
@@ -27,9 +27,9 @@ IntuneWinAppUtil.exe -c intune-stage -s scripts\Install.ps1 -o dist
 | Uninstall command | `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Uninstall.ps1 -AssumeYes` |
 | Install behaviour | System |
 | Device restart behaviour | No specific action |
-| Detection rule | File: `C:\ProgramData\AiZombie\bin\windows11-zombie.cmd` exists |
+| Detection rule | File: `C:\ProgramData\AiZombie\bin\windows-zombie.cmd` exists |
 | Return codes | 0 = success, 3010 = soft reboot |
-| Requirements | OS edition: Windows 11 Pro / Ent / Edu; 64-bit; PowerShell 7 |
+| Requirements | OS edition: Windows 10/11 Pro / Ent / Edu; 64-bit; PowerShell 7 |
 
 ## 4. Assignments
 
@@ -42,8 +42,8 @@ workspace via the Azure Monitor agent for fleet-wide visibility.
 After deployment, verify on a target device:
 
 ```powershell
-Get-Service Windows11Zombie-Chat
-windows11-zombie verify
+Get-Service WindowsZombie-Chat
+windows-zombie verify
 ```
 
 See also: [OPERATIONS.md](./OPERATIONS.md), [RECOVERY.md](./RECOVERY.md).

@@ -1,7 +1,7 @@
-Configuration Windows11ZombieInstall {
+Configuration WindowsZombieInstall {
     param(
         [string]$ReleaseVersion = '0.0.0',
-        [string]$StageDir = 'C:\ProgramData\windows11-zombie-src'
+        [string]$StageDir = 'C:\ProgramData\windows-zombie-src'
     )
 
     Import-DscResource -ModuleName PSDesiredStateConfiguration
@@ -17,12 +17,12 @@ Configuration Windows11ZombieInstall {
             DependsOn = '[File]Stage'
             GetScript = { @{ Result = (Test-Path "$using:StageDir\scripts\Install.ps1") } }
             TestScript = {
-                $svc = Get-Service -Name 'Windows11Zombie-Chat' -ErrorAction SilentlyContinue
+                $svc = Get-Service -Name 'WindowsZombie-Chat' -ErrorAction SilentlyContinue
                 return ($svc -and $svc.Status -eq 'Running')
             }
             SetScript = {
                 $zip = Join-Path $using:StageDir 'release.zip'
-                $url = "https://github.com/japer-technology/windows11-zombie/releases/download/v$using:ReleaseVersion/windows11-zombie-$using:ReleaseVersion.zip"
+                $url = "https://github.com/japer-technology/windows-zombie/releases/download/v$using:ReleaseVersion/windows-zombie-$using:ReleaseVersion.zip"
                 Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
                 Expand-Archive -Path $zip -DestinationPath $using:StageDir -Force
                 & (Join-Path $using:StageDir 'scripts\Install.ps1') install -AssumeYes

@@ -30,7 +30,7 @@ tool call, approval, exit code, and verification result. Candidates:
 * Critical events (`service_start`, `service_stop`,
   `policy_reload`, destructive tool calls, approval denies) are
   *also* mirrored to the Windows Event Log under the
-  `Windows11Zombie-Chat` provider so they survive deletion of the
+  `WindowsZombie-Chat` provider so they survive deletion of the
   `logs\` directory.
 * In-process size+count rotation: the agent rotates when the file
   exceeds a configurable threshold and keeps a fixed count of

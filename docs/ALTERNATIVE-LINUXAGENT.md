@@ -4,16 +4,16 @@ This document is a deep companion to [`ALTERNATIVES.md`](ALTERNATIVES.md)
 and [`ALTERNATIVES-LESSONS.md`](ALTERNATIVES-LESSONS.md). It sits beside
 [`ALTERNATIVE-MISSY.md`](ALTERNATIVE-MISSY.md) and asks the same kind of
 question about a different neighbour: of the projects in the catalogue,
-**LinuxAgent** is the one whose job description matches Windows 11 Zombie's
+**LinuxAgent** is the one whose job description matches Windows Zombie's
 most literally — *let an LLM propose Linux operations, never let it
 execute without a human, prove after the fact that the human actually
 approved* — even though its ergonomics (a CLI you launch yourself) are
-not the ergonomics Windows 11 Zombie is going to ship (a private chat
+not the ergonomics Windows Zombie is going to ship (a private chat
 account that lives on the machine).
 
 That overlap of mission and divergence of shape is exactly what makes
 LinuxAgent worth reading carefully. The job of this file is to read
-LinuxAgent through the Windows 11 Zombie filter defined in
+LinuxAgent through the Windows Zombie filter defined in
 [`VISION.md`](VISION.md) — *Windows 11 + a real local Administrators account + a
 private Tailscale interface + an LLM under human approval* — and
 decide, capability by capability, what to **borrow**, what to
@@ -54,22 +54,22 @@ reports P50/P95/P99 policy latency, `make sandbox` exercises the
 runner boundary, plus `ruff`, `mypy`, `bandit`, and an 80% coverage
 floor).
 
-Windows 11 Zombie is much smaller and shaped very differently — a bash
+Windows Zombie is much smaller and shaped very differently — a bash
 installer that creates one privileged Windows account, a chat surface
 bound to localhost and surfaced over Tailscale, a single Windows 11
 substrate. The interesting question is which of LinuxAgent's
-*primitives* are load-bearing for the safety story Windows 11 Zombie
+*primitives* are load-bearing for the safety story Windows Zombie
 promises in [`VISION.md`](VISION.md), and which are CLI-shaped
-choices that would distort Windows 11 Zombie's chat-and-account shape if
+choices that would distort Windows Zombie's chat-and-account shape if
 imported wholesale.
 
 ## The axis-by-axis comparison
 
-| Axis                          | LinuxAgent                                                                                              | Windows 11 Zombie                                                                              | Implication                                                                                                                                          |
+| Axis                          | LinuxAgent                                                                                              | Windows Zombie                                                                              | Implication                                                                                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Host target                   | Any Linux with Python 3.11+; servers, VMs, containers, homelab                                          | Supported Windows 11 22H2+ Pro/Enterprise only                                                       | Windows 11 Zombie keeps the single-platform simplification; LinuxAgent pays a portability tax (provider matrix, distro-agnostic policy data) that Zombie should not import. |
+| Host target                   | Any Linux with Python 3.11+; servers, VMs, containers, homelab                                          | Supported Windows 11 22H2+ Pro/Enterprise only                                                       | Windows Zombie keeps the single-platform simplification; LinuxAgent pays a portability tax (provider matrix, distro-agnostic policy data) that Zombie should not import. |
 | Install shape                 | `./scripts/bootstrap.sh` or `pip install linuxagent`; user-level launcher in `~/.local/bin`             | Transparent PowerShell installer that creates a local Administrators account and configures Tailscale       | LinuxAgent is a *user-space tool an operator runs*. Zombie is a *system change that becomes the operator*. Zombie's audit and approval story must survive that escalation. |
-| Privilege model               | Runs as the invoking user; remote `sudo` is opt-in per host                                              | Dedicated `zombie` Administrators account plus policy-gated approval                                        | Windows 11 Zombie is strictly more privileged. Every LinuxAgent safety primitive needs to be *at least as strong* in Zombie — the policy engine, the audit log, and the approval gate are not optional. |
+| Privilege model               | Runs as the invoking user; remote `sudo` is opt-in per host                                              | Dedicated `zombie` Administrators account plus policy-gated approval                                        | Windows Zombie is strictly more privileged. Every LinuxAgent safety primitive needs to be *at least as strong* in Zombie — the policy engine, the audit log, and the approval gate are not optional. |
 | Interface                     | Terminal CLI with arrow-key menus, `/resume`, `/new`, `/tools`, `!direct` mode                          | Private chat surface, Tailscale-only inbound, no public listener                           | Borrow LinuxAgent's *idea* of a structured approval prompt; translate the TUI menu into a chat-native equivalent rather than copying the terminal ergonomics. |
 | Inference                     | OpenAI, DeepSeek, Anthropic (extra), Ollama / any OpenAI-compatible relay                                | Cloud LLM in MVP, local models on roadmap                                                  | The "swap the model without touching policy" property is worth importing now even though Zombie has one provider today.                              |
 | Human-in-the-loop             | Mandatory; three-way menu; first-LLM-command always confirms; destructive always confirms; non-TTY auto-denies | Mandatory; classify → propose → approve → run → log                                        | LinuxAgent's *defaults* (auto-deny on missing operator, never-whitelist destructive) are the right floor for Zombie too.                              |
@@ -85,13 +85,13 @@ imported wholesale.
 | Distribution                  | Wheel + sdist + PyPI + constraints.txt + packaged data install check                                     | PowerShell installer + smoke test                                                                | Different vehicles, same instinct: the build verifies what shipped. Keep installer smoke tests honest about what they prove.                         |
 
 The pattern is consistent: LinuxAgent's *safety primitives* generalise
-cleanly to Windows 11 Zombie; its *surface* (CLI, multi-host SSH, plugin
+cleanly to Windows Zombie; its *surface* (CLI, multi-host SSH, plugin
 matrix) does not, and should not be imitated.
 
 ## Capability deep-dives
 
 The rest of this document walks the LinuxAgent feature set in detail
-and for each capability gives an honest verdict for Windows 11 Zombie:
+and for each capability gives an honest verdict for Windows Zombie:
 **borrow**, **translate**, **defer**, or **refuse**.
 
 ### 1. The structured `CommandPlan` boundary
@@ -109,7 +109,7 @@ layer reason about an object.
 [`ALTERNATIVES-LESSONS.md`](ALTERNATIVES-LESSONS.md) already calls out
 from SysKnife and Cline ("typed actions over raw shell strings"), but
 LinuxAgent is the clearest worked example of *what the type buys you*
-once you commit to it. Windows 11 Zombie should treat the planner's output
+once you commit to it. Windows Zombie should treat the planner's output
 schema as a stable contract from the first release, not as something to
 retrofit once free-form prompts start causing incidents.
 
@@ -133,7 +133,7 @@ Two properties matter and are easy to under-rate:
    `destructive.rm_rf_root`" is auditable in a way that "blocked"
    is not.
 
-**Verdict: borrow.** Externalise Windows 11 Zombie's policy into a YAML
+**Verdict: borrow.** Externalise Windows Zombie's policy into a YAML
 file the operator can read with `cat` and review with `diff`. The
 classifier's return shape (`verdict`, `risk`, `capabilities`,
 `matched_rules`) is the right shape for both the approval surface
@@ -163,7 +163,7 @@ survive the translation:
 
 - If the operator is not present on the chat surface, the action does
   not run. "No human, no execution" is the rule.
-- Windows 11 Zombie's "approve once for this thread" must scope to the
+- Windows Zombie's "approve once for this thread" must scope to the
   exact command shape, not to "things like this".
 - Destructive classes always re-prompt. The operator can never opt
   out of seeing them.
@@ -182,7 +182,7 @@ into conversation context, do not ask the model to explain or generate
 a reply for that turn. It is the escape hatch that lets the operator
 do something the agent will not propose, while still being recorded.
 
-**Verdict: borrow the *idea*, refuse the *syntax*.** Windows 11 Zombie's
+**Verdict: borrow the *idea*, refuse the *syntax*.** Windows Zombie's
 operator already has a shell — they have a Windows 11 desktop and a
 terminal. The interesting half of `!` is the *recording* property: when
 the operator does something on the box themselves, the chat surface
@@ -238,8 +238,8 @@ worth studying:
 - The audit record captures changed files, permission changes,
   backup-path hashes, rollback outcomes, and the sandbox root.
 
-**Verdict: borrow most of this, gated on Windows 11 Zombie's actual file-
-edit scope.** Windows 11 Zombie's `zombie` account may eventually need to
+**Verdict: borrow most of this, gated on Windows Zombie's actual file-
+edit scope.** Windows Zombie's `zombie` account may eventually need to
 edit protected config under `C:\\ProgramData\\AiZombie\\etc` — that is part of the promise. The
 LinuxAgent invariants are the right ones for that moment:
 
@@ -268,7 +268,7 @@ output limits, and oversized output is marked as truncated rather
 than silently passed through. Telemetry records `allowed`, `denied`,
 `timeout`, or `truncated`.
 
-**Verdict: borrow the *permission split*; defer the rest.** Windows 11 Zombie's executor should distinguish, from day one, between "read"
+**Verdict: borrow the *permission split*; defer the rest.** Windows Zombie's executor should distinguish, from day one, between "read"
 and "run". Read tools never call into the approval gate; they have
 their own bounded scope and they record what they read. Conflating
 the two is how an agent ends up needing approval to look at a log
@@ -291,7 +291,7 @@ a sandbox, only a metadata recorder, and that the `local` runner
 does not claim filesystem or network isolation. "Safe profile +
 sandbox unavailable = fail closed" is the rule.
 
-**Verdict: borrow the honesty, defer the implementation.** Windows 11 Zombie should not ship a sandbox before it ships a credible one.
+**Verdict: borrow the honesty, defer the implementation.** Windows Zombie should not ship a sandbox before it ships a credible one.
 It *should* ship the *metadata*: which profile a given command would
 have run under, why it ran without one if it did, and the same
 "fail closed when a safe profile is requested but unavailable"
@@ -306,7 +306,7 @@ ssh` is going to encounter material it should not be allowed to
 exfiltrate or reason over verbatim, including paths, IPs,
 credentials in logs, and operator names.
 
-**Verdict: borrow.** Windows 11 Zombie's executor must redact command
+**Verdict: borrow.** Windows Zombie's executor must redact command
 output before it re-enters the planner. The redaction list lives on
 disk (auditable), is appended to over time, and the operator can read
 it. Bounding output (a hard byte cap, with truncation explicit in
@@ -332,7 +332,7 @@ specific contributions to that pattern are:
   *executable by the operator*, not something only the agent
   understands.
 - Optional forwarding is fine, but the local file is canonical.
-  Windows 11 Zombie has no central server to forward to and should not
+  Windows Zombie has no central server to forward to and should not
   invent one.
 - Permission bits matter. `0o600` is the right default and should
   be enforced at write time, not assumed at install time.
@@ -366,7 +366,7 @@ things: a read-only `policy.classify` and `audit.verify`. It
 intentionally does **not** expose command execution, file patch
 application, SSH fan-out, or secrets.
 
-**Verdict: borrow as a principle.** When Windows 11 Zombie eventually
+**Verdict: borrow as a principle.** When Windows Zombie eventually
 grows extension points (it will), the default surface should be
 read-only. Executable plugin hooks are a hole in the trust model: a
 plugin author should not be able to make the executor do anything
@@ -393,7 +393,7 @@ chat startup. The invariants are unusually strict:
   load via `/resume`.
 
 **Verdict: out of MVP scope, but the invariant is the lesson.** If
-Windows 11 Zombie ever grows a memory of any sort, the rule above is
+Windows Zombie ever grows a memory of any sort, the rule above is
 the right one to copy verbatim: *memory may inform proposals,
 but it is never a policy bypass*. That single sentence keeps a
 class of "the agent learned to skip approval" failures from being
@@ -405,7 +405,7 @@ LinuxAgent has an extension point called Skills — and the deliberate
 design choice is that Skills are *manifests*, not executable plugin
 hooks. They can give the planner advisory context; they cannot run.
 
-**Verdict: borrow as a default posture.** Windows 11 Zombie's runbook
+**Verdict: borrow as a default posture.** Windows Zombie's runbook
 vocabulary (already called out in
 [`ALTERNATIVES-LESSONS.md`](ALTERNATIVES-LESSONS.md) §"Top five
 takeaways" point 4) should follow the same instinct: a runbook is a
@@ -431,7 +431,7 @@ things that are easy to under-rate:
    policy engine is treated as a hot path with a budget, not as
    "code that runs sometimes".
 
-**Verdict: borrow, scaled to current size.** Windows 11 Zombie already
+**Verdict: borrow, scaled to current size.** Windows Zombie already
 runs `pwsh -File build.ps1 lint`, `pwsh -File build.ps1 test`, and `pwsh -File build.ps1 package` (see
 `build.ps1`, `tests/Smoke.ps1`, and `.github/workflows/ci.yml`).
 The slot is there. When the policy engine and approval surface land,
@@ -443,7 +443,7 @@ two new targets are the right next additions:
   operator can read.
 - A `benchmark` (or equivalent) target that asserts the classifier
   meets a latency budget on the target hardware floor (Pi-class).
-  This matters specifically because Windows 11 Zombie targets SBCs.
+  This matters specifically because Windows Zombie targets SBCs.
 
 ### 16. Reproducible release
 
@@ -451,7 +451,7 @@ LinuxAgent ships with `constraints.txt`, wheel + sdist + packaged-
 data install check, and explicit install paths for source bootstrap,
 GitHub Release wheel, PyPI, and dev extras.
 
-**Verdict: translate.** Windows 11 Zombie's release is not a wheel; it is
+**Verdict: translate.** Windows Zombie's release is not a wheel; it is
 an installer script and a tagged commit. The instinct still applies:
 the smoke test should prove that *what shipped* still installs and
 boots, not just that the source tree passes its own tests. Pinning
@@ -459,40 +459,40 @@ matters less for a PowerShell installer than for a Python package, but
 "the installer's external dependencies are named in a single
 auditable place" is the same lesson.
 
-## The honest comparison: where Windows 11 Zombie is *more* exposed
+## The honest comparison: where Windows Zombie is *more* exposed
 
-LinuxAgent runs as the invoking user. Windows 11 Zombie creates a
+LinuxAgent runs as the invoking user. Windows Zombie creates a
 dedicated account with administrator rights. That escalation is not
-free, and three properties have to be *stronger* in Windows 11 Zombie
+free, and three properties have to be *stronger* in Windows Zombie
 than they are in LinuxAgent:
 
 1. **The audit log is the only after-the-fact recourse.** LinuxAgent's
-   operator can `ps` the agent at any time; Windows 11 Zombie's operator
+   operator can `ps` the agent at any time; Windows Zombie's operator
    has handed the keys to a separate local Windows account. The audit chain
    has to be tamper-evident and verifiable by a human with `cat` and
    a `verify` command, not by a service the agent itself runs.
 2. **"Non-TTY auto-deny" generalises to "no operator on the chat
    surface, no execution".** LinuxAgent gets this for free because
-   the operator is the one who launched the CLI. Windows 11 Zombie has
+   the operator is the one who launched the CLI. Windows Zombie has
    to assert it — the chat surface knows whether a human is connected,
    and absent that, nothing runs. The Tailscale-only inbound posture
    helps here, but the executor still has to honour the rule.
 3. **Service definitions, registry hives, SSH keys, protected Windows paths,
    and project config are inside the blast radius.** LinuxAgent rejects many of
    these via path policy and treats them as high risk in the patch
-   surface. Windows 11 Zombie *will* legitimately edit some protected Windows state — that
+   surface. Windows Zombie *will* legitimately edit some protected Windows state — that
    is the point. The cost of that legitimacy is that the policy data
    has to enumerate them explicitly, the approval surface has to call
    them out visually, and the audit log has to record both the
    before-hash and the after-hash of any file under those roots.
 
-## What Windows 11 Zombie should *refuse* from LinuxAgent
+## What Windows Zombie should *refuse* from LinuxAgent
 
 Not everything LinuxAgent does is a fit, and pretending otherwise is
 how the MVP blows up. The explicit refusals:
 
 - **CLI ergonomics as the operator surface.** LinuxAgent is a
-  terminal app; Windows 11 Zombie is a chat surface bound to localhost
+  terminal app; Windows Zombie is a chat surface bound to localhost
   and surfaced over Tailscale. Importing the TUI menu, arrow-key
   resume, slash commands, and `!` direct mode would distort the
   product shape. Translate the *invariants* of the approval flow;
@@ -502,7 +502,7 @@ how the MVP blows up. The explicit refusals:
   decision to consider remote execution. Stay single-host.
 - **Multi-provider matrix on day one.** LinuxAgent's provider
   matrix (OpenAI, DeepSeek, Ollama, Anthropic, arbitrary OpenAI-
-  compatible relays) is great. Windows 11 Zombie's MVP is one cloud
+  compatible relays) is great. Windows Zombie's MVP is one cloud
   provider with local on the roadmap. The *abstraction boundary*
   (swap the model without touching policy) is worth importing; the
   *count* is not.
@@ -511,11 +511,11 @@ how the MVP blows up. The explicit refusals:
   copy LinuxAgent's invariant about memory never bypassing policy —
   but do not import the pipeline pre-emptively.
 - **Skills as an extension surface in the MVP.** Even LinuxAgent's
-  Skills are advisory; Windows 11 Zombie should not have an extension
+  Skills are advisory; Windows Zombie should not have an extension
   surface at all in the first release. The runbook vocabulary is
   the right place to start.
 - **Distro-portability gestures.** LinuxAgent runs on "any Linux
-  with Python 3.11+". Windows 11 Zombie's value comes from being
+  with Python 3.11+". Windows Zombie's value comes from being
   honest about its substrate. Encoding "Windows 11 only" is a
   feature.
 
@@ -540,7 +540,7 @@ If only five lessons survive from this deep read, they should be:
    to check the chain themselves without trusting the agent.
 5. **The policy engine is a hot path with a latency budget.** A
    `red-team` adversarial corpus and a P50/P95/P99 benchmark belong
-   in CI alongside lint and tests, especially because Windows 11 Zombie
+   in CI alongside lint and tests, especially because Windows Zombie
    targets Pi-class hardware where the budget is real.
 
 Everything else — the CLI ergonomics, the cluster mode, the provider

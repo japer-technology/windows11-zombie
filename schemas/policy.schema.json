@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/japer-technology/windows11-zombie/schemas/policy.schema.json",
-  "title": "windows11-zombie policy.yaml",
+  "$id": "https://github.com/japer-technology/windows-zombie/schemas/policy.schema.json",
+  "title": "windows-zombie policy.yaml",
   "description": "Schema for payload/etc/policy.yaml. The agent's policy gate re-reads this file on every classification.",
   "type": "object",
   "additionalProperties": false,

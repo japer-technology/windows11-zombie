@@ -1,6 +1,6 @@
 # WinGet manifest skeleton
 
-This directory holds the WinGet manifest for `japer-technology.windows11-zombie`.
+This directory holds the WinGet manifest for `japer-technology.windows-zombie`.
 Manifests are generated per release and submitted to
 [`microsoft/winget-pkgs`](https://github.com/microsoft/winget-pkgs).
 

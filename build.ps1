@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Build, lint, test, package, and verify targets for windows11-zombie.
+    Build, lint, test, package, and verify targets for windows-zombie.
 
 .DESCRIPTION
     Cross-platform PowerShell (Windows PowerShell 5.1+ or PowerShell 7+)
@@ -14,7 +14,7 @@
         test            run tests/Smoke.ps1 in 'all' mode
         smoke           same as test
         verify          run scripts/Install.ps1 verify (requires Administrator)
-        package         emit dist/windows11-zombie-<VERSION>.zip
+        package         emit dist/windows-zombie-<VERSION>.zip
         clean           remove dist/ and Python caches
 
     `lint` and `test` are designed to run unprivileged on Windows, Linux,
@@ -46,7 +46,7 @@ function Invoke-Help {
     Write-Host "  test     - run tests/Smoke.ps1 all (unprivileged)"
     Write-Host "  smoke    - alias for test"
     Write-Host "  verify   - scripts/Install.ps1 verify (requires admin on Windows)"
-    Write-Host "  package  - dist/windows11-zombie-<VERSION>.zip"
+    Write-Host "  package  - dist/windows-zombie-<VERSION>.zip"
     Write-Host "  clean    - remove dist/ and __pycache__"
 }
 
@@ -177,7 +177,7 @@ function Invoke-Package {
     $version = Get-Version
     $dist = Join-Path $RepoRoot 'dist'
     New-Item -ItemType Directory -Force -Path $dist | Out-Null
-    $zip = Join-Path $dist "windows11-zombie-$version.zip"
+    $zip = Join-Path $dist "windows-zombie-$version.zip"
     if (Test-Path $zip) { Remove-Item $zip }
     $paths = @(
         'scripts', 'payload', 'tests', 'build.ps1', 'VERSION',

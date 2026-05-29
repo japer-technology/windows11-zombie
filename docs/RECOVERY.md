@@ -1,7 +1,7 @@
 # Recovery
 
 Recovery procedures for the most common failures of a single
-`windows11-zombie` deployment. Pair with
+`windows-zombie` deployment. Pair with
 [`OPERATIONS.md`](OPERATIONS.md) and [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md).
 
 All commands assume an elevated PowerShell session.
@@ -15,7 +15,7 @@ under `C:\ProgramData\AiZombie-backups\` or
 ```powershell
 pwsh -File scripts/Install.ps1 restore -Path <path-to-zip>
 pwsh -File scripts/Install.ps1 verify
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 `restore` verifies a `SHA256SUMS` manifest inside the zip, lays the
@@ -30,10 +30,10 @@ Symptom: chat UI returns 500; service log shows
 `sqlite3.DatabaseError: database disk image is malformed`.
 
 ```powershell
-Stop-Service Windows11Zombie-Chat
+Stop-Service WindowsZombie-Chat
 Move-Item C:\ProgramData\AiZombie\state\conversations.db `
           C:\ProgramData\AiZombie\state\conversations.db.bad
-Start-Service Windows11Zombie-Chat
+Start-Service WindowsZombie-Chat
 ```
 
 The agent recreates the database on next start (an empty history is
@@ -46,7 +46,7 @@ builds; the manual procedure above is the fallback.
 ```powershell
 pwsh -File scripts/Install.ps1 repair
 notepad C:\ProgramData\AiZombie\secrets\env
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 `repair` lays down a fresh template and re-applies the ACL. Paste
@@ -57,7 +57,7 @@ the provider key into the new file.
 ```powershell
 Remove-Item -Recurse -Force C:\ProgramData\AiZombie\agent-env
 pwsh -File payload/bin/Setup-AgentVenv.ps1 -VenvDir C:\ProgramData\AiZombie\agent-env
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 `Install.ps1 repair` will also rebuild the venv when
@@ -66,24 +66,24 @@ Restart-Service Windows11Zombie-Chat
 ### Wedged service
 
 ```powershell
-Get-Service Windows11Zombie-Chat
-sc.exe queryex Windows11Zombie-Chat
-Stop-Service Windows11Zombie-Chat -Force
-Start-Service Windows11Zombie-Chat
+Get-Service WindowsZombie-Chat
+sc.exe queryex WindowsZombie-Chat
+Stop-Service WindowsZombie-Chat -Force
+Start-Service WindowsZombie-Chat
 ```
 
 If `Stop-Service` cannot complete:
 
 ```powershell
-$pid = (sc.exe queryex Windows11Zombie-Chat | Select-String "PID").ToString().Split(':')[1].Trim()
+$pid = (sc.exe queryex WindowsZombie-Chat | Select-String "PID").ToString().Split(':')[1].Trim()
 Stop-Process -Id $pid -Force
-Start-Service Windows11Zombie-Chat
+Start-Service WindowsZombie-Chat
 ```
 
 ### Firewall rule drift
 
 ```powershell
-Get-NetFirewallRule -Group 'Windows11 Zombie'   # should list the deny rule
+Get-NetFirewallRule -Group 'Windows Zombie'   # should list the deny rule
 pwsh -File scripts/Install.ps1 repair
 ```
 
@@ -109,7 +109,7 @@ below 1 GB. Free space, then:
 
 ```powershell
 pwsh -File payload/bin/Health-Check.ps1
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 Old audit log files are rotated in-place; if `logs\` itself has
@@ -128,7 +128,7 @@ audit log:
 ```powershell
 Move-Item C:\ProgramData\AiZombie\logs\audit.log `
           C:\ProgramData\AiZombie\logs\audit.log.tamper-$(Get-Date -Format yyyyMMdd-HHmmss)
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 ### Lost local `zombie` account

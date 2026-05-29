@@ -1,4 +1,4 @@
-# Windows 11 Zombie default policy.
+# Windows Zombie default policy.
 #
 # Action classes:
 #   read_only       informational, never mutating; runs automatically.

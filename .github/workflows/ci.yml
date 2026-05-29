@@ -44,7 +44,7 @@ jobs:
       - name: Upload release bundle
         uses: actions/upload-artifact@v4
         with:
-          name: windows11-zombie-dist
+          name: windows-zombie-dist
           path: dist/*.zip
           if-no-files-found: error
           retention-days: 7

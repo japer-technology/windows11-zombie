@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Verify the SHA-256 hash chain in the windows11-zombie audit log.
+    Verify the SHA-256 hash chain in the windows-zombie audit log.
 
 .DESCRIPTION
     Reads ``C:\ProgramData\AiZombie\logs\audit.log`` (or the file

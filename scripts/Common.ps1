@@ -41,9 +41,9 @@ if (-not (Test-Path Variable:script:AzConfig) -or -not $script:AzConfig) {
         AgentUser     = (_Coalesce @($env:ZOMBIE_USER, 'zombie'))
         InstallRoot   = (_Coalesce @($env:AI_ZOMBIE_ROOT, (Join-Path $env:ProgramData 'AiZombie')))
         ChatPort      = [int](_Coalesce @($env:ZOMBIE_CHAT_PORT, 7878))
-        ServiceName   = 'Windows11Zombie-Chat'
-        HealthTask    = 'Windows11Zombie-Health'
-        FirewallGroup = 'Windows11 Zombie'
+        ServiceName   = 'WindowsZombie-Chat'
+        HealthTask    = 'WindowsZombie-Health'
+        FirewallGroup = 'Windows Zombie'
         NonInteractive= [bool]($env:ZOMBIE_NONINTERACTIVE -eq '1')
     }
     # Re-derive dependent paths from the install root so callers that
@@ -99,19 +99,49 @@ function Assert-Administrator {
     }
 }
 
-function Assert-Windows11 {
+# Minimum Windows build we treat as a first-class target. 17763 is
+# Windows 10 1809, the first release with modern WinGet/App Installer
+# support and stable New-NetFirewallRule behaviour. Windows 11 starts at
+# build 22000; both are supported by this project.
+$script:MinSupportedWindowsBuild = 17763
+$script:Windows11MinBuild        = 22000
+
+function Assert-SupportedWindows {
+    <#
+    .SYNOPSIS
+        Verify the host is a supported Windows release (Windows 10 1809+
+        or Windows 11) before mutating the system.
+
+    .DESCRIPTION
+        Windows Zombie targets both Windows 10 (build >= 17763, i.e.
+        1809) and Windows 11 (build >= 22000). The privileged surfaces it
+        uses -- services, Scheduled Tasks, Defender Firewall, ACLs, and
+        WinGet -- all shipped in Windows 10 1809, so the floor is a soft,
+        warn-only guard rather than a hard block. This keeps the lenient
+        posture of the original installer while making both versions
+        first-class targets.
+    #>
     $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
     if (-not $os) {
         throw "Cannot detect operating system."
     }
     if ($os.Caption -notmatch 'Windows') {
-        throw "Unsupported OS: $($os.Caption). Windows 11 is required."
+        throw "Unsupported OS: $($os.Caption). Windows 10 (1809+) or Windows 11 is required."
     }
     $build = [int]($os.BuildNumber)
-    if ($build -lt 22000) {
-        Write-AzLog -Level WARN "Detected Windows build $build; Windows 11 (build >= 22000) is the supported target."
+    $edition = if ($build -ge $script:Windows11MinBuild) { 'Windows 11' } else { 'Windows 10' }
+    if ($build -lt $script:MinSupportedWindowsBuild) {
+        Write-AzLog -Level WARN ("Detected Windows build $build; the tested floor is " +
+            "$($script:MinSupportedWindowsBuild) (Windows 10 1809). Continuing, but this " +
+            "build is older than the supported range.")
+    } else {
+        Write-AzLog "Detected $edition (build $build); within the supported range."
     }
 }
+
+# Backwards-compatible alias for callers/scripts that still reference the
+# original Windows 11-only gate name.
+Set-Alias -Name Assert-Windows11 -Value Assert-SupportedWindows -Scope Script
 
 function Test-ValidAgentUsername {
     param([string]$Name)
@@ -214,8 +244,8 @@ function Ensure-AgentAccount {
         }
         Write-AzLog "Creating local user '$AgentUser' (password is randomly generated and never displayed)."
         New-LocalUser -Name $AgentUser -Password $Password `
-            -FullName "Windows 11 Zombie AI SysAdmin" `
-            -Description "AI Systems Administrator account managed by windows11-zombie." `
+            -FullName "Windows Zombie AI SysAdmin" `
+            -Description "AI Systems Administrator account managed by windows-zombie." `
             -PasswordNeverExpires:$true -UserMayNotChangePassword:$true | Out-Null
     }
     if (-not (Get-LocalGroupMember -Group 'Administrators' -Member $AgentUser -ErrorAction SilentlyContinue)) {
@@ -249,7 +279,7 @@ function New-RandomPassword {
 function Register-AiZombieService {
     <#
     .SYNOPSIS
-        Create or update the Windows11Zombie-Chat service.
+        Create or update the WindowsZombie-Chat service.
     .DESCRIPTION
         Uses sc.exe so the service can run a Python venv under a
         deterministic working directory without dragging NSSM in as a
@@ -283,10 +313,10 @@ function Register-AiZombieService {
         # later move the service to the dedicated agent account via
         # sc.exe config + the Log-on-as-a-service privilege grant.
         sc.exe create $ServiceName binPath= "$binPath" start= auto `
-            DisplayName= "Windows 11 Zombie chat (AI SysAdmin)" `
+            DisplayName= "Windows Zombie chat (AI SysAdmin)" `
             obj= "LocalSystem" | Out-Null
     }
-    sc.exe description $ServiceName "Loopback-only AI Systems Administrator chat service for windows11-zombie." | Out-Null
+    sc.exe description $ServiceName "Loopback-only AI Systems Administrator chat service for windows-zombie." | Out-Null
     sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/5000/restart/60000 | Out-Null
 }
 
@@ -309,7 +339,7 @@ function Register-HealthScheduledTask {
     }
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($trigger, $trigger2) `
         -Settings $settings -Principal $principal `
-        -Description "windows11-zombie periodic health check." | Out-Null
+        -Description "windows-zombie periodic health check." | Out-Null
 }
 
 # ---------------------------------------------------------------------
@@ -323,17 +353,71 @@ function Ensure-FirewallRules {
     # Loopback-only: explicitly block inbound to the chat port from
     # any non-loopback interface. (Loopback traffic is exempt from
     # filtering on Windows by default.)
-    $existing = Get-NetFirewallRule -DisplayName "windows11-zombie chat: deny remote inbound" -ErrorAction SilentlyContinue
+    $existing = Get-NetFirewallRule -DisplayName "windows-zombie chat: deny remote inbound" -ErrorAction SilentlyContinue
     if (-not $existing) {
-        New-NetFirewallRule -DisplayName "windows11-zombie chat: deny remote inbound" `
+        New-NetFirewallRule -DisplayName "windows-zombie chat: deny remote inbound" `
             -Group $Group -Direction Inbound -Action Block -Protocol TCP `
             -LocalPort $ChatPort -RemoteAddress Any `
             -Description "Loopback-only invariant: the chat service must not be reachable from any non-loopback interface." `
             -Profile Any | Out-Null
         Write-AzLog -Level OK "Created firewall block for inbound TCP/$ChatPort."
     } else {
-        Set-NetFirewallRule -DisplayName "windows11-zombie chat: deny remote inbound" -LocalPort $ChatPort | Out-Null
+        Set-NetFirewallRule -DisplayName "windows-zombie chat: deny remote inbound" -LocalPort $ChatPort | Out-Null
     }
+}
+
+# ---------------------------------------------------------------------
+# Legacy migration (windows-zombie -> windows-zombie rename)
+# ---------------------------------------------------------------------
+
+function Remove-LegacyServiceArtifact {
+    <#
+    .SYNOPSIS
+        Remove service/task/firewall artifacts created by pre-rename
+        (``Windows11Zombie-*``) installs so an in-place upgrade does not
+        orphan them alongside the new ``WindowsZombie-*`` resources.
+    .DESCRIPTION
+        User data under ``C:\ProgramData\AiZombie\`` is unaffected: only
+        the externally named OS resources (Windows Service, Scheduled
+        Tasks, and the Defender Firewall rule/group) are renamed, so this
+        migration simply tears the legacy-named ones down. The installer
+        then recreates them under the new names. Idempotent and safe to
+        run on a clean machine (every lookup tolerates "not found").
+    #>
+    [CmdletBinding()]
+    param()
+
+    $legacyServices = @('Windows11Zombie-Chat')
+    $legacyTasks    = @('Windows11Zombie-Health', 'Windows11Zombie-Backup')
+    $legacyFwRule   = 'windows11-zombie chat: deny remote inbound'
+    $legacyFwGroup  = 'Windows11 Zombie'
+
+    foreach ($svc in $legacyServices) {
+        if ($svc -eq $script:AzConfig.ServiceName) { continue }
+        if (Get-Service -Name $svc -ErrorAction SilentlyContinue) {
+            Write-AzLog -Level WARN "Migrating legacy service '$svc' to '$($script:AzConfig.ServiceName)'."
+            Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
+            sc.exe delete $svc | Out-Null
+        }
+    }
+
+    foreach ($task in $legacyTasks) {
+        if ($task -eq $script:AzConfig.HealthTask) { continue }
+        if (Get-ScheduledTask -TaskName $task -ErrorAction SilentlyContinue) {
+            Write-AzLog -Level WARN "Removing legacy scheduled task '$task'."
+            Unregister-ScheduledTask -TaskName $task -Confirm:$false
+        }
+    }
+
+    if ($legacyFwGroup -ne $script:AzConfig.FirewallGroup) {
+        Get-NetFirewallRule -Group $legacyFwGroup -ErrorAction SilentlyContinue |
+            ForEach-Object {
+                Write-AzLog -Level WARN "Removing legacy firewall rule '$($_.DisplayName)'."
+                Remove-NetFirewallRule -Name $_.Name -ErrorAction SilentlyContinue
+            }
+    }
+    Get-NetFirewallRule -DisplayName $legacyFwRule -ErrorAction SilentlyContinue |
+        ForEach-Object { Remove-NetFirewallRule -Name $_.Name -ErrorAction SilentlyContinue }
 }
 
 # ---------------------------------------------------------------------
@@ -372,7 +456,7 @@ function Ensure-SecretsFile {
     $parent = Split-Path $Path -Parent
     Ensure-Directory $parent | Out-Null
     $template = @"
-# Windows 11 Zombie secrets. ACL'd to SYSTEM + Administrators + $AgentUser.
+# Windows Zombie secrets. ACL'd to SYSTEM + Administrators + $AgentUser.
 # Pick ONE provider and paste its key. All providers are routed through
 # @earendil-works/pi-ai; see docs/CONFIGURATION.md.
 #
@@ -400,7 +484,7 @@ function Ensure-SecretsFile {
 function New-AiZombieBackup {
     <#
     .SYNOPSIS
-        Snapshot the windows11-zombie state, secrets, config, and logs.
+        Snapshot the windows-zombie state, secrets, config, and logs.
     .DESCRIPTION
         Produces a timestamped zip under ``<InstallRoot>\state\backups\``
         with a ``SHA256SUMS`` manifest so ``Restore-AiZombieBackup``
@@ -433,7 +517,7 @@ function New-AiZombieBackup {
 
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $tempBase = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { [System.IO.Path]::GetTempPath() }
-    $stage = Join-Path $tempBase "windows11-zombie-backup-$stamp"
+    $stage = Join-Path $tempBase "windows-zombie-backup-$stamp"
     if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
     New-Item -ItemType Directory -Path $stage | Out-Null
 
@@ -484,7 +568,7 @@ function New-AiZombieBackup {
             }
         $entries | Set-Content -LiteralPath $manifestPath -Encoding ascii
 
-        $zip = Join-Path $DestDir "windows11-zombie-state-$stamp.zip"
+        $zip = Join-Path $DestDir "windows-zombie-state-$stamp.zip"
         if (Test-Path $zip) { Remove-Item -Force $zip }
         Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -Force
         Write-AzLog -Level OK "Wrote backup $zip"
@@ -493,7 +577,7 @@ function New-AiZombieBackup {
     }
 
     if ($Retain -gt 0) {
-        Get-ChildItem -File -Path $DestDir -Filter 'windows11-zombie-state-*.zip' |
+        Get-ChildItem -File -Path $DestDir -Filter 'windows-zombie-state-*.zip' |
             Sort-Object LastWriteTime -Descending |
             Select-Object -Skip $Retain |
             ForEach-Object {
@@ -508,7 +592,7 @@ function New-AiZombieBackup {
 function Restore-AiZombieBackup {
     <#
     .SYNOPSIS
-        Restore a windows11-zombie backup zip into the install root.
+        Restore a windows-zombie backup zip into the install root.
     .DESCRIPTION
         Verifies the ``SHA256SUMS`` manifest inside the zip, lays the
         files back into ``<InstallRoot>\{etc,secrets,state,logs}``,
@@ -534,7 +618,7 @@ function Restore-AiZombieBackup {
     }
 
     $tempBase = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { [System.IO.Path]::GetTempPath() }
-    $stage = Join-Path $tempBase ("windows11-zombie-restore-" + [Guid]::NewGuid().ToString('N'))
+    $stage = Join-Path $tempBase ("windows-zombie-restore-" + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
     try {
         Expand-Archive -LiteralPath $Path -DestinationPath $stage -Force
@@ -589,10 +673,10 @@ function Restore-AiZombieBackup {
 function Register-BackupScheduledTask {
     <#
     .SYNOPSIS
-        Register a daily ``Windows11Zombie-Backup`` Scheduled Task.
+        Register a daily ``WindowsZombie-Backup`` Scheduled Task.
     #>
     param(
-        [string]$TaskName = 'Windows11Zombie-Backup',
+        [string]$TaskName = 'WindowsZombie-Backup',
         [Parameter(Mandatory)][string]$InstallerPath,
         [string]$RunAt = '03:00'
     )
@@ -609,5 +693,5 @@ function Register-BackupScheduledTask {
     }
     Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger `
         -Settings $settings -Principal $principal `
-        -Description "windows11-zombie daily state backup." | Out-Null
+        -Description "windows-zombie daily state backup." | Out-Null
 }

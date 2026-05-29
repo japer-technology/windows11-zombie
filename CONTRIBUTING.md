@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for improving windows11-zombie. The project is a Windows 11
+Thank you for improving windows-zombie. The project is a Windows 10/11
 installer plus a portable Python/Node agent runtime, so changes should be
 small, reviewable, and safe to validate on disposable Windows machines.
 
@@ -18,7 +18,7 @@ pwsh -File build.ps1 package
 `lint` parses PowerShell, compiles Python, and parses `policy.yaml`.
 `test` runs `tests/Smoke.ps1 all`. CI runs on `windows-latest`.
 
-Use Windows Sandbox, a Hyper-V VM, or another throwaway Windows 11 22H2+
+Use Windows Sandbox, a Hyper-V VM, or another throwaway Windows 10 22H2 or Windows 11 22H2+
 Pro/Enterprise machine for real installs. Do not run the installer or
 uninstaller on a machine you are not prepared to modify.
 
@@ -39,8 +39,8 @@ winget install --silent --accept-source-agreements --accept-package-agreements <
 
 ## Security invariants
 
-- The service is `Windows11Zombie-Chat`; health supervision is the
-  `Windows11Zombie-Health` Scheduled Task.
+- The service is `WindowsZombie-Chat`; health supervision is the
+  `WindowsZombie-Health` Scheduled Task.
 - Installed state lives under `C:\ProgramData\AiZombie\` unless
   `AI_ZOMBIE_ROOT` overrides it.
 - The local `zombie` account is a member of Administrators. The service

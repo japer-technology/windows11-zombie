@@ -6,8 +6,8 @@ Windows-specific details an autonomous agent is most likely to get wrong.
 
 ## What this repository is
 
-Windows 11 Zombie is a PowerShell + Python/Node installer that adds a
-private, policy-gated AI Systems Administrator to a Windows 11 PC. The OS
+Windows Zombie is a PowerShell + Python/Node installer that adds a
+private, policy-gated AI Systems Administrator to a Windows 10 or Windows 11 PC. The OS
 integration layer is Windows Services, Scheduled Tasks, Defender Firewall,
 WinGet, local users/groups, and ACL-protected files under
 `C:\ProgramData\AiZombie\`. The portable agent runtime remains under
@@ -54,7 +54,7 @@ pwsh -File build.ps1 package
 ```
 
 The real installer must be run from an elevated PowerShell session on a
-disposable Windows 11 machine:
+disposable Windows 10/11 machine:
 
 ```powershell
 pwsh -File scripts/Install.ps1 install
@@ -94,12 +94,12 @@ Use these replacements consistently in docs and code:
 - Services: `Get-Service`, `Start-Service`, `Stop-Service`,
   `Restart-Service`, and `sc.exe` for identity configuration.
 - Logs: `Get-WinEvent -LogName Application -ProviderName
-  Windows11Zombie-Chat -MaxEvents 50` and files under
+  WindowsZombie-Chat -MaxEvents 50` and files under
   `C:\ProgramData\AiZombie\logs\`.
 - Packages: `winget install --silent --accept-source-agreements
   --accept-package-agreements ...`.
 - Firewall: `Get-NetFirewallRule`, `New-NetFirewallRule`, and the
-  `Windows11 Zombie` rule group.
+  `Windows Zombie` rule group.
 - Users: `New-LocalUser`, `Add-LocalGroupMember`, and ACL cmdlets.
 - GUI: `payload/bin/Screenshot.ps1` plus `payload/bin/GuiAction.ps1`.
 - Tailscale: `& 'C:\Program Files\Tailscale\tailscale.exe' up`.

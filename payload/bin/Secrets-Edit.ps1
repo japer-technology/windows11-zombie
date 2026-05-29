@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Safely edit the windows11-zombie secrets file in $env:EDITOR / notepad.
+    Safely edit the windows-zombie secrets file in $env:EDITOR / notepad.
     Re-applies ACLs after the editor exits, even on error.
 #>
 [CmdletBinding()]
@@ -82,5 +82,5 @@ try {
     }
     Write-Host ""
     Write-Host "Saved. Restart the chat service to pick up the new value:"
-    Write-Host "  Restart-Service Windows11Zombie-Chat"
+    Write-Host "  Restart-Service WindowsZombie-Chat"
 }
