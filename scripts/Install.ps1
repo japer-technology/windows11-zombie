@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Install or upgrade Windows 11 Zombie on this machine.
+    Install or upgrade Windows Zombie on this machine.
 
 .DESCRIPTION
     Idempotent installer that:
@@ -10,8 +10,8 @@
       * sets NTFS ACLs equivalent to the legacy 0750/0640 model
       * installs Python 3.12, Node.js 22, Git, and Tailscale via WinGet
       * sets up the agent Python venv and Playwright browser
-      * registers the Windows11Zombie-Chat service (auto-start, loopback)
-      * registers Windows11Zombie-Health as a Scheduled Task
+      * registers the WindowsZombie-Chat service (auto-start, loopback)
+      * registers WindowsZombie-Health as a Scheduled Task
       * applies a Defender Firewall block for non-loopback access
 
     Re-running the installer is safe: every step checks current state
@@ -54,7 +54,11 @@ param(
 
 function Invoke-Install {
     Assert-Administrator
-    Assert-Windows11
+    Assert-SupportedWindows
+
+    # Migrate any pre-rename (windows11-zombie) service/task/firewall
+    # artifacts so an in-place upgrade does not leave orphans behind.
+    Remove-LegacyServiceArtifact
 
     $cfg = $script:AzConfig
     if (-not (Test-ValidAgentUsername $cfg.AgentUser)) {
@@ -138,7 +142,7 @@ function Invoke-Verify {
     Add-Check "chat service running"    ($svc -and $svc.Status -eq 'Running') ''
     $task = Get-ScheduledTask -TaskName $cfg.HealthTask -ErrorAction SilentlyContinue
     Add-Check "health task registered" ([bool]$task) ''
-    $fw = Get-NetFirewallRule -DisplayName "windows11-zombie chat: deny remote inbound" -ErrorAction SilentlyContinue
+    $fw = Get-NetFirewallRule -DisplayName "windows-zombie chat: deny remote inbound" -ErrorAction SilentlyContinue
     Add-Check "firewall rule present" ([bool]$fw) ''
 
     $fail = 0
@@ -179,6 +183,9 @@ function Invoke-Repair {
     Write-AzLog "repair: re-applying ACLs, service config, firewall rules, scheduled tasks."
     Assert-Administrator
     $cfg = $script:AzConfig
+
+    # Clean up any leftover pre-rename artifacts before re-applying state.
+    Remove-LegacyServiceArtifact
 
     # Re-create install root if a sibling tree was deleted.
     foreach ($p in @($cfg.InstallRoot, $cfg.BinDir, $cfg.AgentDir, $cfg.EtcDir,

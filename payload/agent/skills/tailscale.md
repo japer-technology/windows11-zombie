@@ -17,7 +17,7 @@ Operating rules:
   operator should pass it via the secrets file or interactive login,
   not the chat.
 - Avoid `tailscale set --ssh=true` unless the operator explicitly
-  asked. The Windows 11 Zombie default keeps Tailscale SSH off in
+  asked. The Windows Zombie default keeps Tailscale SSH off in
   favour of the host's RDP (and optional `sshd`) so audit log and
   key handling stay consistent.
 - If `tailscale status` reports "Logged out", surface that fact and

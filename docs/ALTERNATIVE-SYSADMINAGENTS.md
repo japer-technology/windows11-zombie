@@ -5,7 +5,7 @@ and [`ALTERNATIVES-LESSONS.md`](ALTERNATIVES-LESSONS.md). It reads the
 [`rhel-lightspeed/sysadmin-agents`](https://github.com/rhel-lightspeed/sysadmin-agents)
 project — and its underlying tool surface,
 [`rhel-lightspeed/linux-mcp-server`](https://github.com/rhel-lightspeed/linux-mcp-server)
-— through the Windows 11 Zombie filter defined in [`VISION.md`](VISION.md):
+— through the Windows Zombie filter defined in [`VISION.md`](VISION.md):
 *Windows 11 22H2+ Pro/Enterprise + a local Administrators account + a private Tailscale interface
 + an LLM under human approval, on a single operator-owned machine*.
 
@@ -15,7 +15,7 @@ for Linux administration." That makes it the most interesting reference
 for *framing* (what does a vendor-grade Linux agent look like?) and the
 most dangerous one to copy from naively, because its shape — fleet, SSH,
 read-only, multi-agent, Gemini-locked, container-first — is almost the
-mirror image of Windows 11 Zombie's shape.
+mirror image of Windows Zombie's shape.
 
 The job of this file is to decide, capability by capability, what to
 **borrow**, what to **translate**, what to **defer**, and what to
@@ -41,7 +41,7 @@ The system is positioned for *system administrators, DevOps, and SREs*
 operating *fleets* of RHEL/Fedora servers, not for individual desktop
 ownership.
 
-Windows 11 Zombie is the opposite shape on most of those axes. The
+Windows Zombie is the opposite shape on most of those axes. The
 interesting question is which *ideas* from Sysadmin Agents survive the
 translation to a single Windows 11 desktop with a real `zombie` Unix
 account, a Tailscale-only interface, and a mandatory approval gate in
@@ -49,7 +49,7 @@ front of every mutation.
 
 ## The axis-by-axis comparison
 
-| Axis                          | Sysadmin Agents                                                                                  | Windows 11 Zombie                                                                              | Implication                                                                                                                                          |
+| Axis                          | Sysadmin Agents                                                                                  | Windows Zombie                                                                              | Implication                                                                                                                                          |
 | ----------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Host target                   | One or many RHEL / Fedora servers, reached over SSH from a separate runner                       | A single Windows 11 22H2+ Pro/Enterprise PC the operator already owns                          | Sysadmin Agents is a fleet tool; Zombie is a per-machine resident. Don't import fleet abstractions into the MVP.                                     |
 | Distro posture                | RHEL/systemd-focused; "optimised for Red Hat Enterprise Linux systems"                           | Windows 11 22H2+ Pro/Enterprise-first, by design                                                                 | Both projects honestly encode a distro choice. Zombie should keep doing this and resist generic-Linux drift.                                         |
@@ -67,7 +67,7 @@ front of every mutation.
 ## Capabilities to borrow now (load-bearing for the MVP)
 
 These are Sysadmin Agents primitives that map directly onto promises
-Windows 11 Zombie has already made in [`VISION.md`](VISION.md) or are
+Windows Zombie has already made in [`VISION.md`](VISION.md) or are
 implied by the existing top-five takeaways in
 [`ALTERNATIVES-LESSONS.md`](ALTERNATIVES-LESSONS.md).
 
@@ -84,7 +84,7 @@ the worst case is "the agent reads a log you could already read."
 
 This is the strongest single architectural idea to import. It validates
 the line in `ALTERNATIVES-LESSONS.md` that "diagnostic-first is a
-legitimate scope" and gives it teeth: Windows 11 Zombie should ship a
+legitimate scope" and gives it teeth: Windows Zombie should ship a
 clearly delineated **read-only diagnostic tier** where the executor
 *physically cannot* mutate the system — separate code path, separate
 typed-action enum, separate audit category — and a **mutating tier**
@@ -96,7 +96,7 @@ Concretely, the verbs to lift from `linux-mcp-server` as the opening
 read-only catalogue are well-chosen: system identity, CPU, memory,
 disk, processes, services, journal, service-specific logs, audit logs,
 block devices, network interfaces, and directory listings. They are a
-good checklist for Windows 11 Zombie's first read-only tool set.
+good checklist for Windows Zombie's first read-only tool set.
 
 ### 2. Typed tools served over MCP, not free-form shell
 
@@ -109,7 +109,7 @@ that knows how to render that into a real command.
 This is the same conclusion `ALTERNATIVES-LESSONS.md` already reaches
 from SysKnife and Cline — "typed actions, not free-form shell" — and
 seeing a vendor-grade project commit to it via MCP raises the
-confidence that Windows 11 Zombie's executor should ship as a typed tool
+confidence that Windows Zombie's executor should ship as a typed tool
 catalogue from day one, with MCP-compatible signatures even if the MVP
 does not yet speak the protocol on the wire. The payoff is the same
 one Sysadmin Agents enjoys: the renderer / approver / auditor can be
@@ -124,7 +124,7 @@ labelled blocks: `/*PLANNING*/`, `/*ACTION*/`, `/*REASONING*/`,
 the audit log — can see *why* the agent did what it did, not just
 *what* it did.
 
-Windows 11 Zombie's audit story benefits from the same shape. Every
+Windows Zombie's audit story benefits from the same shape. Every
 proposed action should be accompanied by a short structured rationale
 written by the agent (what it intends to do, which tool calls it
 intends to make, why those calls and not others, and what the expected
@@ -147,7 +147,7 @@ exists so the human reading the recommendation can prioritise.
 class vocabulary" as one of the top five takeaways (from LinuxAgent and
 RHEL sysadmin-agents). Sysadmin Agents shows the most concrete
 spelling of that vocabulary in the catalogue: a four-level ordinal,
-attached *per recommendation*, not per command type. Windows 11 Zombie
+attached *per recommendation*, not per command type. Windows Zombie
 should adopt the same four-level scale (or something very close) as the
 mandatory annotation on every proposed mutating action. It maps
 naturally onto the approval gate: SAFE actions can be eligible for
@@ -158,7 +158,7 @@ scoped auto-approve; CAUTION and DANGEROUS actions never are.
 Sysadmin Agents' five specialists — **RCA**, **performance**,
 **capacity**, **upgrade**, **security** — are an excellent first-pass
 taxonomy of what an operator actually wants help with on a personal
-Linux machine. Windows 11 Zombie does *not* need to implement them as
+Linux machine. Windows Zombie does *not* need to implement them as
 separate agents (see below), but it should treat them as a starter set
 of **named runbooks**: "diagnose a performance problem", "explain disk
 usage and propose cleanup", "investigate the last crash / hang",
@@ -181,9 +181,9 @@ from inside a container, exposing routing decisions, tool calls, and
 agent traces in a live panel. The *information* in that panel — which
 specialist was chosen, which typed tools were called with which
 arguments, what the reasoning was, what the final answer is — is
-exactly the information Windows 11 Zombie's operator should see in chat.
+exactly the information Windows Zombie's operator should see in chat.
 
-The translation: Windows 11 Zombie keeps its single private chat surface
+The translation: Windows Zombie keeps its single private chat surface
 (bound to `127.0.0.1`, reached over Tailscale), and the chat
 *messages themselves* render the same content the ADK UI shows —
 collapsible reasoning blocks, a list of tool calls with their typed
@@ -194,7 +194,7 @@ from the structure, not from the browser-vs-chat substrate.
 
 `linux-mcp-server` reaches its targets over SSH because the agents and
 the machines are on different hosts; SSH is the natural trust boundary.
-Windows 11 Zombie is in the opposite situation: the agent and the machine
+Windows Zombie is in the opposite situation: the agent and the machine
 *are the same machine*, and there is a real local Windows account
 (`zombie`) to act as. SSH would be a worse trust boundary here, not a
 better one — every Zombie command would round-trip through `sshd` only
@@ -217,7 +217,7 @@ executor, not in the chatty LLM client.
 orchestration in the MVP" is **not** a lesson to copy. Sysadmin
 Agents' five-specialist split makes sense at fleet scale where a
 performance investigation and a security audit may need genuinely
-different prompts, tools, and even quotas. Windows 11 Zombie is one
+different prompts, tools, and even quotas. Windows Zombie is one
 machine and one operator; the *content* of the specialists is useful,
 but the *dispatch machinery* (`transfer_to_agent`, sub-agent
 lifecycles, per-specialist memory) is pure overhead at this scale.
@@ -231,7 +231,7 @@ agent picks which runbook to run; there is no separate process to
 Sysadmin Agents ships a `Containerfile`, `podman/docker run` recipes,
 and an OpenShift/Kubernetes deployment path. That makes sense for an
 enterprise tool that may run anywhere from a dev laptop to a managed
-cluster. Windows 11 Zombie's distribution is explicitly the opposite — a
+cluster. Windows Zombie's distribution is explicitly the opposite — a
 transparent PowerShell installer that creates a real local Administrators account on the
 operator's own Windows 11 PC. A container would *hide* the trust
 boundary the installer is trying to make legible.
@@ -244,11 +244,11 @@ the operator can `systemctl status`.
 
 ## Capabilities to defer
 
-These are real Sysadmin Agents features that Windows 11 Zombie should
+These are real Sysadmin Agents features that Windows Zombie should
 probably grow into eventually, but not in the MVP.
 
 - **Multi-host conversations.** Sysadmin Agents' value proposition
-  includes "query multiple hosts in one conversation". Windows 11 Zombie's
+  includes "query multiple hosts in one conversation". Windows Zombie's
   vision is one machine. If Zombie ever grows a fleet story, it
   should look like *several independent Zombies that happen to share
   an operator*, not like one agent SSH-ing into many hosts.
@@ -270,14 +270,14 @@ probably grow into eventually, but not in the MVP.
 
 ## Capabilities to explicitly refuse
 
-These are choices Sysadmin Agents has made that Windows 11 Zombie should
+These are choices Sysadmin Agents has made that Windows Zombie should
 *not* import, even later, because they conflict with promises in
 [`VISION.md`](VISION.md).
 
 ### 1. "Read-only is the whole product"
 
 Sysadmin Agents is safe in part because it cannot mutate anything; it
-recommends commands for a human to run. Windows 11 Zombie's whole point is
+recommends commands for a human to run. Windows Zombie's whole point is
 the opposite — a computer that can *operate* itself. Refusing to
 mutate would be refusing the product. The lesson is to *separate* the
 read-only and mutating tiers, not to collapse the latter into "we'll
@@ -286,10 +286,10 @@ just print the command and let the human paste it".
 ### 2. Single-vendor LLM lock-in
 
 Hardcoding Google Gemini via `GOOGLE_API_KEY` is a defensible enterprise
-choice; the ADK reasoning quality is the trade. Windows 11 Zombie's
+choice; the ADK reasoning quality is the trade. Windows Zombie's
 roadmap commits to local inference, and its operator owns the machine,
 so the provider must be swappable. The Missy lesson ("swap the model
-without touching policy") applies here too: every promise Windows 11 Zombie
+without touching policy") applies here too: every promise Windows Zombie
 makes — typed actions, approval gates, audit signatures — has to hold
 across provider swaps.
 
@@ -355,7 +355,7 @@ Sysadmin Agents demonstrates concretely:
 Sysadmin Agents is the closest thing in the alternatives catalogue to
 "a major Linux vendor's idea of what an LLM-driven system
 administrator should look like." Read as a *blueprint*, almost
-everything about it is wrong for Windows 11 Zombie — fleet over single
+everything about it is wrong for Windows Zombie — fleet over single
 host, SSH over local user, container over installer, Gemini over
 provider-swappable, multi-agent over single-agent, read-only-only over
 mutating-with-approval. Read as a *menu of primitives*, almost
@@ -364,7 +364,7 @@ read-only diagnostic tier, structured visible reasoning, a four-level
 risk vocabulary, and a starter set of named runbooks that map onto
 problems real operators actually have.
 
-The job for Windows 11 Zombie is to take the primitives, refuse the
+The job for Windows Zombie is to take the primitives, refuse the
 shape, and add the one thing Sysadmin Agents structurally does not
 need: a signed audit log and a mandatory approval gate in front of
 every action that can change the machine.

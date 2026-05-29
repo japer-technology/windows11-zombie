@@ -1,6 +1,6 @@
 # Windows 10 possibilities
 
-> Could `windows11-zombie` be modified to operate on **both Windows 10
+> Could `windows-zombie` be modified to operate on **both Windows 10
 > and Windows 11**? Short answer: **yes, with modest, well-contained
 > changes.** Nothing in the design depends on a Windows 11-only kernel
 > feature. The "11" in the name is a target and a default, not a hard
@@ -99,9 +99,9 @@ cosmetic.
     `APPEND_SYSTEM_TEMPLATE` in `server.py` tell the model it administers
     "a Microsoft Windows 11 machine".
 - **Branding and packaging (cosmetic but wide-reaching)**
-  - Repo name, service names (`Windows11Zombie-Chat`,
-    `Windows11Zombie-Health`), the `windows11-zombie.cmd` shim, event-log
-    source `Windows11Zombie-Chat`, firewall group, and the manifests
+  - Repo name, service names (`WindowsZombie-Chat`,
+    `WindowsZombie-Health`), the `windows-zombie.cmd` shim, event-log
+    source `WindowsZombie-Chat`, firewall group, and the manifests
     under `packaging/` all carry "11" in identifiers.
 
 ## What would actually change, by effort

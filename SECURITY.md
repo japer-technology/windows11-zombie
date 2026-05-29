@@ -1,6 +1,6 @@
 # Security policy
 
-Windows 11 Zombie deliberately installs a powerful local AI administrator.
+Windows Zombie deliberately installs a powerful local AI administrator.
 Treat every deployment as privileged infrastructure, not a toy chatbot.
 
 ## Supported platform
@@ -17,8 +17,8 @@ Administrators account named `zombie`; operators may switch the service to
 that account for closer parity with a dedicated admin identity:
 
 ```powershell
-sc.exe config Windows11Zombie-Chat obj= .\zombie password= <password>
-Restart-Service Windows11Zombie-Chat
+sc.exe config WindowsZombie-Chat obj= .\zombie password= <password>
+Restart-Service WindowsZombie-Chat
 ```
 
 `LocalSystem` has broad machine privileges and no normal user profile.

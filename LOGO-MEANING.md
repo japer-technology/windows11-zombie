@@ -1,6 +1,6 @@
 # Logo meaning
 
-The Windows 11 Zombie logo keeps the skull-and-robot idea from the earlier
+The Windows Zombie logo keeps the skull-and-robot idea from the earlier
 project while moving the visual language to a Windows 11 desktop.
 
 ## Core symbols
@@ -19,7 +19,7 @@ project while moving the visual language to a Windows 11 desktop.
 
 ## Intended message
 
-Windows 11 Zombie is not a generic chatbot. It is an operator-controlled
+Windows Zombie is not a generic chatbot. It is an operator-controlled
 AI Systems Administrator installed locally on a Windows PC. The logo
 therefore balances friendly automation with a clear warning: the agent can
 observe, diagnose, and propose privileged changes, but policy and approval

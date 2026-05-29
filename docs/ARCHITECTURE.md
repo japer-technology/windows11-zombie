@@ -1,6 +1,6 @@
 # Architecture
 
-windows11-zombie is split into a Windows integration layer and a portable
+windows-zombie is split into a Windows integration layer and a portable
 agent runtime.
 
 ## Component overview
@@ -11,7 +11,7 @@ Operator over RDP/Tailscale
         v
 127.0.0.1:7878 chat UI
         |
-Windows11Zombie-Chat Windows Service
+WindowsZombie-Chat Windows Service
         |
 portable Python agent + Node/pi bridge
         |
@@ -20,7 +20,7 @@ policy.yaml -> approvals -> audited tool dispatch
 PowerShell helpers / WinGet / Services / Defender Firewall / GUI tools
 ```
 
-A separate Scheduled Task, `Windows11Zombie-Health`, runs
+A separate Scheduled Task, `WindowsZombie-Health`, runs
 `Health-Check.ps1` as SYSTEM every five minutes and restarts or reports on
 unhealthy service state.
 
@@ -30,7 +30,7 @@ Default root: `C:\ProgramData\AiZombie\` (override with `AI_ZOMBIE_ROOT`).
 
 | Path | Purpose |
 | --- | --- |
-| `bin\` | Installed helper scripts and `windows11-zombie.cmd` target. |
+| `bin\` | Installed helper scripts and `windows-zombie.cmd` target. |
 | `agent\` | Portable Python/Node agent runtime. |
 | `etc\policy.yaml` | Policy classes, budgets, approvals, confirmation rules. |
 | `etc\skills.d\` | Operator skill documents. |
@@ -46,12 +46,12 @@ Default root: `C:\ProgramData\AiZombie\` (override with `AI_ZOMBIE_ROOT`).
 
 ## Windows services and tasks
 
-`Windows11Zombie-Chat` is an auto-start Windows Service with restart on
+`WindowsZombie-Chat` is an auto-start Windows Service with restart on
 failure. It runs as `LocalSystem` by default. Operators may switch it to
 `.\zombie` with `sc.exe config` if they prefer a named administrator
 identity.
 
-`Windows11Zombie-Health` is a Scheduled Task running as SYSTEM with a
+`WindowsZombie-Health` is a Scheduled Task running as SYSTEM with a
 five-minute repetition interval. It calls `payload/bin/Health-Check.ps1`.
 Scheduled Task context has no interactive desktop, so GUI automation only
 works when run in an interactive operator session or when the service is
@@ -81,7 +81,7 @@ Every decision and command result is recorded through the audit logger.
 ## Network model
 
 The chat server binds to loopback (`127.0.0.1:7878`). The installer creates
-a `Windows11 Zombie` Defender Firewall rule group and explicitly denies
+a `Windows Zombie` Defender Firewall rule group and explicitly denies
 chat traffic from non-loopback interfaces. RDP (`3389`) and optional
 OpenSSH (`22`) should be restricted to the Tailscale interface or a trusted
 management subnet.

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Smoke tests for windows11-zombie.
+    Smoke tests for windows-zombie.
 
 .DESCRIPTION
     Designed to run unprivileged on Windows, Linux, or macOS so CI can

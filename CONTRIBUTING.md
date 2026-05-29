@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for improving windows11-zombie. The project is a Windows 11
+Thank you for improving windows-zombie. The project is a Windows 11
 installer plus a portable Python/Node agent runtime, so changes should be
 small, reviewable, and safe to validate on disposable Windows machines.
 
@@ -39,8 +39,8 @@ winget install --silent --accept-source-agreements --accept-package-agreements <
 
 ## Security invariants
 
-- The service is `Windows11Zombie-Chat`; health supervision is the
-  `Windows11Zombie-Health` Scheduled Task.
+- The service is `WindowsZombie-Chat`; health supervision is the
+  `WindowsZombie-Health` Scheduled Task.
 - Installed state lives under `C:\ProgramData\AiZombie\` unless
   `AI_ZOMBIE_ROOT` overrides it.
 - The local `zombie` account is a member of Administrators. The service

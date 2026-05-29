@@ -17,7 +17,7 @@ Operating rules:
 - Never disable Defender Firewall as part of a routine diagnosis. If
   a service appears unreachable, narrow the rule rather than open the
   firewall.
-- The Windows 11 Zombie default policy expects:
+- The Windows Zombie default policy expects:
     * RDP (TCP/3389) to remain reachable from the Tailscale interface;
     * SSH (TCP/22) — if `Set-Service sshd` was enabled — to remain
       reachable from the Tailscale interface;

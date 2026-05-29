@@ -1,6 +1,6 @@
 # Operations runbook
 
-Day-two operations for `windows11-zombie`. Pair this with
+Day-two operations for `windows-zombie`. Pair this with
 [`RECOVERY.md`](RECOVERY.md) for disaster scenarios and
 [`UPGRADE.md`](UPGRADE.md) for in-place version bumps.
 
@@ -12,15 +12,15 @@ All commands assume an elevated PowerShell session
 ### Status
 
 ```powershell
-Get-Service Windows11Zombie-Chat
-Get-ScheduledTask Windows11Zombie-Health
-Get-ScheduledTask Windows11Zombie-Backup
+Get-Service WindowsZombie-Chat
+Get-ScheduledTask WindowsZombie-Health
+Get-ScheduledTask WindowsZombie-Backup
 ```
 
 ### Restart
 
 ```powershell
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 ### Drain / quiesce before maintenance
@@ -30,9 +30,9 @@ pi-mono tool calls finish or are interrupted on stop. The "quiesce"
 procedure is:
 
 ```powershell
-Stop-Service Windows11Zombie-Chat
+Stop-Service WindowsZombie-Chat
 # do the work
-Start-Service Windows11Zombie-Chat
+Start-Service WindowsZombie-Chat
 pwsh -File scripts/Install.ps1 verify
 ```
 
@@ -40,23 +40,23 @@ The Scheduled Task runs every 15 minutes and restarts a stopped
 service. Disable the task during long maintenance windows:
 
 ```powershell
-Disable-ScheduledTask -TaskName Windows11Zombie-Health
+Disable-ScheduledTask -TaskName WindowsZombie-Health
 # ... do the work ...
-Enable-ScheduledTask  -TaskName Windows11Zombie-Health
+Enable-ScheduledTask  -TaskName WindowsZombie-Health
 ```
 
 ### Switch service identity (LocalSystem ↔ `zombie`)
 
 ```powershell
-sc.exe config Windows11Zombie-Chat obj= .\zombie password= <password>
-Restart-Service Windows11Zombie-Chat
+sc.exe config WindowsZombie-Chat obj= .\zombie password= <password>
+Restart-Service WindowsZombie-Chat
 ```
 
 To go back:
 
 ```powershell
-sc.exe config Windows11Zombie-Chat obj= LocalSystem
-Restart-Service Windows11Zombie-Chat
+sc.exe config WindowsZombie-Chat obj= LocalSystem
+Restart-Service WindowsZombie-Chat
 ```
 
 ## Secrets
@@ -65,7 +65,7 @@ Restart-Service Windows11Zombie-Chat
 
 ```powershell
 pwsh -File payload/bin/Secrets-Edit.ps1
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 `Secrets-Edit.ps1` re-applies ACLs and writes a SHA-256 audit entry
@@ -84,7 +84,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 ```powershell
 [System.Environment]::SetEnvironmentVariable('ZOMBIE_PROVIDER', 'anthropic', 'Machine')
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 ### Verify the audit chain
@@ -104,7 +104,7 @@ Returns a non-zero exit code if the hash chain in
 | `C:\ProgramData\AiZombie\logs\install.log` | Installer transcript. | Append. |
 | `C:\ProgramData\AiZombie\logs\events.log` | Non-audit operational events. | In-process size+count. |
 | `C:\ProgramData\AiZombie\state\health.json` | Last `Health-Check.ps1` result. | Overwritten each run. |
-| `Get-WinEvent -LogName Application -ProviderName Windows11Zombie-Chat` | Service start/stop, mirrored critical audit. | Standard Windows. |
+| `Get-WinEvent -LogName Application -ProviderName WindowsZombie-Chat` | Service start/stop, mirrored critical audit. | Standard Windows. |
 
 Quick tail:
 
@@ -114,7 +114,7 @@ Get-Content C:\ProgramData\AiZombie\logs\audit.log -Tail 50 -Wait
 
 ## Backups
 
-A `Windows11Zombie-Backup` Scheduled Task runs daily and writes a
+A `WindowsZombie-Backup` Scheduled Task runs daily and writes a
 timestamped zip under `state\backups\`. Force a backup now:
 
 ```powershell
@@ -124,7 +124,7 @@ pwsh -File scripts/Install.ps1 backup
 Restore (see [`RECOVERY.md`](RECOVERY.md) for full procedure):
 
 ```powershell
-pwsh -File scripts/Install.ps1 restore -Path C:\ProgramData\AiZombie\state\backups\windows11-zombie-state-20260101-030000.zip
+pwsh -File scripts/Install.ps1 restore -Path C:\ProgramData\AiZombie\state\backups\windows-zombie-state-20260101-030000.zip
 ```
 
 ## Health
@@ -142,11 +142,11 @@ The structured `health.json` is machine-readable for scraping:
 
 ## Firewall
 
-The `Windows11 Zombie` rule group must contain the
+The `Windows Zombie` rule group must contain the
 "deny remote inbound" rule for the chat port:
 
 ```powershell
-Get-NetFirewallRule -Group 'Windows11 Zombie'
+Get-NetFirewallRule -Group 'Windows Zombie'
 ```
 
 Re-apply if missing:

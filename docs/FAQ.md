@@ -41,7 +41,7 @@ a SHA-256 audit entry. Restart the service afterwards:
 
 ```powershell
 pwsh -File payload/bin/Secrets-Edit.ps1
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 ## Does it support Windows 11 Home?

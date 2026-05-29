@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-    One-shot health summary for Windows 11 Zombie.
+    One-shot health summary for Windows Zombie.
 
 .DESCRIPTION
-    Runs every five minutes from the ``Windows11Zombie-Health``
+    Runs every five minutes from the ``WindowsZombie-Health``
     Scheduled Task. Checks service state, network/Tailscale,
     Defender Firewall, secrets, disk, audit log integrity, clock
     skew, and the loopback bind invariant. Writes a structured
@@ -23,7 +23,7 @@ $secretsFile  = Join-Path $installRoot 'secrets\env'
 $auditLog     = Join-Path $installRoot 'logs\audit.log'
 $stateDir     = Join-Path $installRoot 'state'
 $healthJson   = Join-Path $stateDir 'health.json'
-$serviceName  = 'Windows11Zombie-Chat'
+$serviceName  = 'WindowsZombie-Chat'
 $chatPort     = if ($env:ZOMBIE_CHAT_PORT) { [int]$env:ZOMBIE_CHAT_PORT } else { 7878 }
 
 $pass = 0; $warn = 0; $fail = 0
@@ -39,7 +39,7 @@ function Add-Check {
     }
 }
 
-Write-Host "== windows11-zombie health ==" -ForegroundColor White
+Write-Host "== windows-zombie health ==" -ForegroundColor White
 
 # --- Chat service --------------------------------------------------
 $svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
@@ -104,7 +104,7 @@ if ($profiles) {
     Add-Check 'Defender Firewall queryable' 'warn'
 }
 
-$fwRule = Get-NetFirewallRule -Group 'Windows11 Zombie' -ErrorAction SilentlyContinue
+$fwRule = Get-NetFirewallRule -Group 'Windows Zombie' -ErrorAction SilentlyContinue
 if ($fwRule) {
     Add-Check 'firewall rule group present' 'ok'
 } else {

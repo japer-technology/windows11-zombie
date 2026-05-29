@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-  <Package Name="windows11-zombie"
+  <Package Name="windows-zombie"
            Manufacturer="Japer Technology"
            Version="0.0.0.0"
            UpgradeCode="6f7d5c8e-4a3b-4c2e-9c8e-2f1a5b6d7e8f"
@@ -9,12 +9,12 @@
     <MediaTemplate EmbedCab="yes" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="windows11-zombie">
+      <Directory Id="INSTALLFOLDER" Name="windows-zombie">
         <!-- File harvest is performed at packaging time via `wix harvest`. -->
       </Directory>
     </StandardDirectory>
 
-    <Feature Id="Main" Title="windows11-zombie" Level="1">
+    <Feature Id="Main" Title="windows-zombie" Level="1">
       <ComponentGroupRef Id="ProductComponents" />
     </Feature>
 

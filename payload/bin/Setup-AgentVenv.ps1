@@ -60,7 +60,7 @@ Invoke-PipRetry @('install', '--upgrade',
     'playwright', 'pyautogui', 'pillow', 'mss', 'opencv-python')
 
 # Playwright browser download — flaky over slow networks; retry.
-$cacheDir = Join-Path $env:LOCALAPPDATA 'windows11-zombie'
+$cacheDir = Join-Path $env:LOCALAPPDATA 'windows-zombie'
 $null = New-Item -ItemType Directory -Force -Path $cacheDir
 $failSentinel = Join-Path $cacheDir 'playwright-failed'
 

@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Pretty-print recent windows11-zombie audit entries (JSON Lines).
+    Pretty-print recent windows-zombie audit entries (JSON Lines).
 
 .PARAMETER N        Number of entries to show (default 25).
 .PARAMETER All      Show the entire log.
@@ -19,7 +19,7 @@ $installRoot = if ($env:AI_ZOMBIE_ROOT) { $env:AI_ZOMBIE_ROOT } else { Join-Path
 $auditLog = if ($env:ZOMBIE_AUDIT_LOG) { $env:ZOMBIE_AUDIT_LOG } else { Join-Path $installRoot 'logs\audit.log' }
 
 if (-not (Test-Path -LiteralPath $auditLog)) {
-    Write-Error "Audit log not found at $auditLog. (Run windows11-zombie first to create it.)"
+    Write-Error "Audit log not found at $auditLog. (Run windows-zombie first to create it.)"
     exit 1
 }
 

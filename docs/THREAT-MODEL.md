@@ -1,6 +1,6 @@
 # Threat model
 
-`windows11-zombie` installs a local AI Systems Administrator. The
+`windows-zombie` installs a local AI Systems Administrator. The
 service has effective Administrator on the host. This document
 captures the trust boundaries, the abuse cases we considered, and
 the explicit non-goals.
@@ -19,7 +19,7 @@ and disclosure) and [`POLICY.md`](POLICY.md) (the gating mechanism).
 |  |                                                    |  |
 |  |  +----------------------------------------------+  |  |
 |  |  | Loopback interface only (127.0.0.1:7878)     |  |  |
-|  |  |  HTTP chat UI <-> Windows11Zombie-Chat       |  |  |
+|  |  |  HTTP chat UI <-> WindowsZombie-Chat       |  |  |
 |  |  |                       |                      |  |  |
 |  |  |                       v                      |  |  |
 |  |  |              Policy gate (policy.yaml)       |  |  |

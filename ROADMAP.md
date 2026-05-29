@@ -30,13 +30,13 @@ and the per-item history in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Out of scope
 
-* Multi-user chat or hosted/shared modes — Windows 11 Zombie is and
+* Multi-user chat or hosted/shared modes — Windows Zombie is and
   remains a single-machine local admin.
 * Cross-platform parity with the Linux variants is not a goal; the
   `docs/ALTERNATIVE-*.md` documents capture that history.
 
 ## Asking for changes
 
-Open an issue or start a [discussion](https://github.com/japer-technology/windows11-zombie/discussions)
+Open an issue or start a [discussion](https://github.com/japer-technology/windows-zombie/discussions)
 before sending a roadmap-changing PR. ADRs live under
 [`docs/ADR/`](docs/ADR/).

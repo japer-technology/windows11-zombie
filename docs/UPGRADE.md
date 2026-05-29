@@ -1,6 +1,6 @@
 # Upgrade
 
-`windows11-zombie` upgrades in place. The installer is idempotent —
+`windows-zombie` upgrades in place. The installer is idempotent —
 re-running `install` over an existing tree converges to the new
 desired state.
 
@@ -11,7 +11,7 @@ desired state.
 pwsh -File scripts/Install.ps1 backup
 
 # 2. Pull the new revision.
-cd C:\path\to\windows11-zombie
+cd C:\path\to\windows-zombie
 git fetch --tags
 git checkout v0.5.0
 
@@ -20,7 +20,7 @@ pwsh -File scripts/Install.ps1 install
 
 # 4. Verify.
 pwsh -File scripts/Install.ps1 verify
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 The installer:
@@ -42,7 +42,7 @@ If the new version misbehaves:
 git checkout <previous-tag>
 pwsh -File scripts/Install.ps1 install
 pwsh -File scripts/Install.ps1 restore -Path <latest-backup.zip>
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 Or fully roll back to the pre-upgrade snapshot:
@@ -50,7 +50,7 @@ Or fully roll back to the pre-upgrade snapshot:
 ```powershell
 pwsh -File scripts/Uninstall.ps1 -Archive -AssumeYes
 # install the previous version, then:
-pwsh -File scripts/Install.ps1 restore -Path C:\ProgramData\AiZombie-backups\windows11-zombie-<stamp>.zip
+pwsh -File scripts/Install.ps1 restore -Path C:\ProgramData\AiZombie-backups\windows-zombie-<stamp>.zip
 ```
 
 ## Version skew matrix

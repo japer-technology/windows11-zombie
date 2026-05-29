@@ -1,4 +1,4 @@
-"""Cross-platform path resolution for Windows 11 Zombie.
+"""Cross-platform path resolution for Windows Zombie.
 
 All persistent paths used by the agent (install root, state directory,
 audit log, secrets file, policy file, skill directories, history

@@ -1,13 +1,13 @@
 # WiX (MSI) skeleton
 
-`Windows11Zombie.wxs` lays down the unzipped payload to
-`%ProgramFiles%\windows11-zombie\` and runs `Install.ps1 install` as a
+`WindowsZombie.wxs` lays down the unzipped payload to
+`%ProgramFiles%\windows-zombie\` and runs `Install.ps1 install` as a
 custom action. Build with WiX 4:
 
 ```powershell
-wix build packaging\wix\Windows11Zombie.wxs -o dist\windows11-zombie.msi
+wix build packaging\wix\WindowsZombie.wxs -o dist\windows-zombie.msi
 ```
 
 The MSI is intended for Group Policy / Intune deployment. Detection
-rule: existence of `%ProgramData%\AiZombie\bin\windows11-zombie.cmd`.
+rule: existence of `%ProgramData%\AiZombie\bin\windows-zombie.cmd`.
 Uninstall command: `Install.ps1 uninstall -AssumeYes`.

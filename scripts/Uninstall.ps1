@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Reverse the Windows 11 Zombie installer.
+    Reverse the Windows Zombie installer.
 
 .DESCRIPTION
     Stops and removes the chat service, scheduled health task, firewall
@@ -40,7 +40,7 @@ function Confirm-Action {
     return ($ans -eq 'YES')
 }
 
-Write-AzLog "== windows11-zombie uninstall =="
+Write-AzLog "== windows-zombie uninstall =="
 
 # 1. Service + scheduled task
 if (Get-Service -Name $cfg.ServiceName -ErrorAction SilentlyContinue) {
@@ -65,7 +65,7 @@ if ($Archive -and (Test-Path $cfg.InstallRoot)) {
     $backupRoot = Join-Path $env:ProgramData 'AiZombie-backups'
     Ensure-Directory $backupRoot | Out-Null
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $zip = Join-Path $backupRoot "windows11-zombie-$stamp.zip"
+    $zip = Join-Path $backupRoot "windows-zombie-$stamp.zip"
     Write-AzLog "Archiving install tree to '$zip'."
     Compress-Archive -Path (Join-Path $cfg.InstallRoot '*') -DestinationPath $zip -Force
 }

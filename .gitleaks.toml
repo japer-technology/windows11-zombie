@@ -1,9 +1,9 @@
-# Gitleaks configuration for windows11-zombie.
+# Gitleaks configuration for windows-zombie.
 #
 # Extends the default ruleset; we add a few project-specific allowlists
 # so that placeholder values in docs and tests do not trip the scan.
 
-title = "windows11-zombie gitleaks config"
+title = "windows-zombie gitleaks config"
 
 [extend]
 useDefault = true

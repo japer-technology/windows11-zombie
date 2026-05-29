@@ -6,7 +6,7 @@ Windows-specific details an autonomous agent is most likely to get wrong.
 
 ## What this repository is
 
-Windows 11 Zombie is a PowerShell + Python/Node installer that adds a
+Windows Zombie is a PowerShell + Python/Node installer that adds a
 private, policy-gated AI Systems Administrator to a Windows 11 PC. The OS
 integration layer is Windows Services, Scheduled Tasks, Defender Firewall,
 WinGet, local users/groups, and ACL-protected files under
@@ -94,12 +94,12 @@ Use these replacements consistently in docs and code:
 - Services: `Get-Service`, `Start-Service`, `Stop-Service`,
   `Restart-Service`, and `sc.exe` for identity configuration.
 - Logs: `Get-WinEvent -LogName Application -ProviderName
-  Windows11Zombie-Chat -MaxEvents 50` and files under
+  WindowsZombie-Chat -MaxEvents 50` and files under
   `C:\ProgramData\AiZombie\logs\`.
 - Packages: `winget install --silent --accept-source-agreements
   --accept-package-agreements ...`.
 - Firewall: `Get-NetFirewallRule`, `New-NetFirewallRule`, and the
-  `Windows11 Zombie` rule group.
+  `Windows Zombie` rule group.
 - Users: `New-LocalUser`, `Add-LocalGroupMember`, and ACL cmdlets.
 - GUI: `payload/bin/Screenshot.ps1` plus `payload/bin/GuiAction.ps1`.
 - Tailscale: `& 'C:\Program Files\Tailscale\tailscale.exe' up`.

@@ -47,7 +47,7 @@ jobs:
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v1
         with:
-          subject-path: 'dist/windows11-zombie-*.zip'
+          subject-path: 'dist/windows-zombie-*.zip'
 
       - name: Extract release notes
         id: notes
@@ -62,7 +62,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/windows11-zombie-*.zip
+            dist/windows-zombie-*.zip
             dist/SHA256SUMS
             dist/sbom-python.json
           body_path: release-notes.md

@@ -302,6 +302,6 @@ def provider_from_env(name: str | None = None,
     keys = ", ".join(spec.key_env for spec in _PI_AI_PROVIDERS)
     raise NoProviderConfigured(
         "No provider API key found. Set one of "
-        f"{keys} in the windows11-zombie secrets file and restart "
-        "the Windows11Zombie-Chat service."
+        f"{keys} in the windows-zombie secrets file and restart "
+        "the WindowsZombie-Chat service."
     )

@@ -21,7 +21,7 @@ candidates were:
 * Default: register the service as `LocalSystem`.
 * Always create a local Administrators account named `zombie`
   (overridable via `ZOMBIE_USER`) during install.
-* Document the `sc.exe config Windows11Zombie-Chat obj= .\zombie`
+* Document the `sc.exe config WindowsZombie-Chat obj= .\zombie`
   one-liner so operators who want a dedicated identity can opt in
   without re-running the installer.
 
@@ -40,7 +40,7 @@ candidates were:
 
 ## Alternatives considered
 
-* `NT SERVICE\Windows11Zombie-Chat` virtual account — gives unique
+* `NT SERVICE\WindowsZombie-Chat` virtual account — gives unique
   identity but cannot be added to local Administrators, so the
   service could not perform the WinGet/firewall/service operations
   the agent needs.

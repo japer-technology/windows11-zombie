@@ -1,7 +1,7 @@
 # Architecture Decision Records
 
 ADRs capture the *why* behind non-trivial design decisions in
-`windows11-zombie`. Add a new record when proposing a change that
+`windows-zombie`. Add a new record when proposing a change that
 touches one of the following:
 
 * Service identity, ACL model, or trust boundaries.

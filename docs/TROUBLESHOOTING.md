@@ -5,8 +5,8 @@ Run diagnostics first from an elevated PowerShell session:
 ```powershell
 pwsh -File scripts/Install.ps1 doctor
 pwsh -File scripts/Install.ps1 verify
-Get-Service Windows11Zombie-Chat
-Get-ScheduledTask Windows11Zombie-Health
+Get-Service WindowsZombie-Chat
+Get-ScheduledTask WindowsZombie-Health
 Get-Content C:\ProgramData\AiZombie\logs\install.log -Tail 100
 Get-Content C:\ProgramData\AiZombie\logs\audit.log -Tail 100
 ```
@@ -51,9 +51,9 @@ Restart PowerShell after PATH changes.
 Inspect service configuration and recent events:
 
 ```powershell
-sc.exe query Windows11Zombie-Chat
-sc.exe qc Windows11Zombie-Chat
-Get-WinEvent -LogName Application -ProviderName Windows11Zombie-Chat -MaxEvents 50
+sc.exe query WindowsZombie-Chat
+sc.exe qc WindowsZombie-Chat
+Get-WinEvent -LogName Application -ProviderName WindowsZombie-Chat -MaxEvents 50
 Get-Content C:\ProgramData\AiZombie\logs\chat.log -Tail 100
 ```
 
@@ -61,7 +61,7 @@ Then repair and restart:
 
 ```powershell
 pwsh -File scripts/Install.ps1 repair
-Restart-Service Windows11Zombie-Chat
+Restart-Service WindowsZombie-Chat
 ```
 
 ## Firewall profile mismatch
@@ -72,7 +72,7 @@ project rule group:
 ```powershell
 Get-NetConnectionProfile
 Get-NetFirewallProfile
-Get-NetFirewallRule -Group 'Windows11 Zombie'
+Get-NetFirewallRule -Group 'Windows Zombie'
 ```
 
 Keep chat loopback-only. Scope RDP/OpenSSH rules to Tailscale or trusted

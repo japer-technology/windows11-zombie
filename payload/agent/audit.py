@@ -1,4 +1,4 @@
-"""Audit logging for Windows 11 Zombie.
+"""Audit logging for Windows Zombie.
 
 Every prompt, proposed action, approval decision, command, exit code,
 and verification result is appended as one JSON object per line to
@@ -60,7 +60,7 @@ _EVENT_LOG_TYPES = frozenset({
     "audit_corruption",
     "remote_bind_attempt",
 })
-_EVENT_LOG_SOURCE = "Windows11Zombie-Chat"
+_EVENT_LOG_SOURCE = "WindowsZombie-Chat"
 
 
 def _mirror_to_event_log(event_type: str, line: str) -> None:
